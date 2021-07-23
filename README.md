@@ -76,7 +76,7 @@ cp .env.example .env
 - **Git hooks**: with [husky](https://github.com/typicode/husky) and [lint-staged](https://github.com/okonet/lint-staged)
 - **Linting**: with [ESLint](https://eslint.org) and [Prettier](https://prettier.io)
 - **Editor config**: using [EditorConfig](https://editorconfig.org)
-- **Auto migrations**: using [sequelize-mig](https://www.npmjs.com/package/sequelize-mig)
+- **Automatic migrations**: using [sequelize-mig](https://www.npmjs.com/package/sequelize-mig)
 
 ## Commands
 
