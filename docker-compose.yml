@@ -1,0 +1,41 @@
+version: '3'
+
+services:
+  node-app:
+    build: .
+    image: node-app
+    env_file:
+      - .env
+    ports:
+      - '3000:3000'
+    depends_on:
+      - db
+    volumes:
+      - .:/usr/src/node-app
+    networks:
+      - node-network
+
+  db:
+    image: mysql:8
+    cap_add:
+      - SYS_NICE
+    command: [ '--default-authentication-plugin=mysql_native_password',  '--character-set-server=utf8mb4', '--collation-server=utf8mb4_unicode_ci' ]
+    restart: always
+    ports:
+      - 3306:3306
+    environment:
+      MYSQL_DATABASE: ${DB_NAME}
+      MYSQL_USER: ${DB_USER}
+      MYSQL_PASSWORD: ${DB_PWD}
+      MYSQL_ROOT_PASSWORD: ${DB_ROOT_PWD}
+    volumes:
+      - dbdata:/data/db
+    networks:
+      - node-network
+
+volumes:
+  dbdata:
+
+networks:
+  node-network:
+    driver: bridge

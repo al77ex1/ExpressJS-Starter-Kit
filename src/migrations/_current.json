@@ -1,0 +1,106 @@
+{
+    "tables": {
+        "users": {
+            "tableName": "users",
+            "schema": {
+                "id": {
+                    "primaryKey": true,
+                    "field": "id",
+                    "seqType": "Sequelize.UUID"
+                },
+                "name": {
+                    "allowNull": false,
+                    "field": "name",
+                    "seqType": "Sequelize.STRING"
+                },
+                "email": {
+                    "allowNull": false,
+                    "field": "email",
+                    "seqType": "Sequelize.STRING"
+                },
+                "password": {
+                    "allowNull": false,
+                    "field": "password",
+                    "seqType": "Sequelize.STRING"
+                },
+                "role": {
+                    "default": "user",
+                    "field": "role",
+                    "seqType": "Sequelize.ENUM('user', 'admin')"
+                },
+                "isEmailVerified": {
+                    "default": false,
+                    "field": "is_email_verified",
+                    "seqType": "Sequelize.BOOLEAN"
+                },
+                "createdAt": {
+                    "allowNull": false,
+                    "field": "created_at",
+                    "seqType": "Sequelize.DATE"
+                },
+                "updatedAt": {
+                    "allowNull": false,
+                    "field": "updated_at",
+                    "seqType": "Sequelize.DATE"
+                }
+            },
+            "indexes": {
+                "dc5153e4004b6323de4db96d57f9c069e4fe19aa": {
+                    "unique": true,
+                    "fields": [
+                        "email"
+                    ],
+                    "name": "users_email",
+                    "options": {
+                        "indexName": "users_email",
+                        "name": "users_email",
+                        "indicesType": "UNIQUE",
+                        "type": "UNIQUE"
+                    }
+                }
+            }
+        },
+        "token": {
+            "tableName": "token",
+            "schema": {
+                "token": {
+                    "allowNull": false,
+                    "primaryKey": true,
+                    "field": "token",
+                    "seqType": "Sequelize.STRING"
+                },
+                "type": {
+                    "allowNull": false,
+                    "field": "type",
+                    "seqType": "Sequelize.STRING"
+                },
+                "expires": {
+                    "allowNull": false,
+                    "field": "expires",
+                    "seqType": "Sequelize.DATE"
+                },
+                "blacklisted": {
+                    "allowNull": false,
+                    "field": "blacklisted",
+                    "seqType": "Sequelize.BOOLEAN"
+                },
+                "user": {
+                    "allowNull": true,
+                    "references": {
+                        "model": "users",
+                        "key": "id"
+                    },
+                    "onDelete": "cascade",
+                    "onUpdate": "CASCADE",
+                    "field": "user",
+                    "seqType": "Sequelize.UUID"
+                }
+            },
+            "indexes": []
+        }
+    },
+    "path": "/usr/src/node-app/src/migrations/_current.json",
+    "backupPath": "/usr/src/node-app/src/migrations/_current_bak.json",
+    "exists": false,
+    "revision": 1
+}
