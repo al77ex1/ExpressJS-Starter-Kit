@@ -1,3 +1,4 @@
+const { Sequelize } = require('sequelize');
 const bcrypt = require('bcryptjs');
 const { v4: uuidv4 } = require('uuid');
 const { Model } = require('sequelize');
@@ -55,6 +56,11 @@ module.exports = (sequelize, DataTypes) => {
     newUser.id = uuidv4();
   });
 
+  /**
+   * Check if password matches the user's password
+   * @param {string} password
+   * @returns {Promise<boolean>}
+   */
   User.prototype.isPasswordMatch = async function (password) {
     return bcrypt.compare(password, this.password);
   };
