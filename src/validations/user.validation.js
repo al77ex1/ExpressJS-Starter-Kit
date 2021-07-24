@@ -14,9 +14,9 @@ const getUsers = {
   query: Joi.object().keys({
     name: Joi.string(),
     role: Joi.string(),
-    sortBy: Joi.string(),
+    order: Joi.string().regex(/.*:asc$|.*desc$/),
     limit: Joi.number().integer(),
-    page: Joi.number().integer(),
+    offset: Joi.number().integer(),
   }),
 };
 

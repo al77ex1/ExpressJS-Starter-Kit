@@ -98,7 +98,7 @@ module.exports = router;
  *           type: string
  *         description: User role
  *       - in: query
- *         name: sortBy
+ *         name: order
  *         schema:
  *           type: string
  *         description: sort by query in the form of field:desc/asc (ex. name:asc)
@@ -110,12 +110,12 @@ module.exports = router;
  *         default: 10
  *         description: Maximum number of users
  *       - in: query
- *         name: page
+ *         name: offset
  *         schema:
  *           type: integer
  *           minimum: 1
  *           default: 1
- *         description: Page number
+ *         description: Offset
  *     responses:
  *       "200":
  *         description: OK
@@ -128,7 +128,7 @@ module.exports = router;
  *                   type: array
  *                   items:
  *                     $ref: '#/components/schemas/User'
- *                 page:
+ *                 offset:
  *                   type: integer
  *                   example: 1
  *                 limit:

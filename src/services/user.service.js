@@ -18,13 +18,15 @@ const createUser = async (userBody) => {
  * Query for users
  * @param {Object} filter
  * @param {Object} options - Query options
- * @param {string} [options.sortBy] - Sort option in the format: sortField:(desc|asc)
+ * @param {string} [options.order] - Sort option in the format: sortField:(desc|asc)
  * @param {number} [options.limit] - Maximum number of results per page (default = 10)
- * @param {number} [options.page] - Current page (default = 1)
+ * @param {number} [options.offset] - Current offset (default = 1)
  * @returns {Promise<QueryResult>}
  */
 const queryUsers = async (filter, options) => {
-  const users = await User.paginate(filter, options);
+  const parameters = options;
+  if (parameters.order) parameters.order = [parameters.order.split(':')];
+  const users = await User.findAll({ where: filter, parameters });
   return users;
 };
 
