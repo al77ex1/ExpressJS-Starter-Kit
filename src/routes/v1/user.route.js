@@ -113,8 +113,8 @@ module.exports = router;
  *         name: offset
  *         schema:
  *           type: integer
- *           minimum: 1
- *           default: 1
+ *           minimum: 0
+ *           default: 0
  *         description: Offset
  *     responses:
  *       "200":

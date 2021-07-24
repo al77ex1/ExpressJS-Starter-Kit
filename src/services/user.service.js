@@ -18,15 +18,18 @@ const createUser = async (userBody) => {
  * Query for users
  * @param {Object} filter
  * @param {Object} options - Query options
- * @param {string} [options.order] - Sort option in the format: sortField:(desc|asc)
+ * @param {string} [options.order] - Order option in the format: sortField:(desc|asc)
  * @param {number} [options.limit] - Maximum number of results per page (default = 10)
  * @param {number} [options.offset] - Current offset (default = 1)
  * @returns {Promise<QueryResult>}
  */
 const queryUsers = async (filter, options) => {
   const parameters = options;
-  if (parameters.order) parameters.order = [parameters.order.split(':')];
-  const users = await User.findAll({ where: filter, parameters });
+  if (parameters.order) {
+    parameters.order = [parameters.order.split(':')];
+    parameters.order[0][1] = parameters.order[0][1].toUpperCase();
+  }
+  const users = await User.findAll({ where: filter, ...parameters });
   return users;
 };
 
