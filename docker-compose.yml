@@ -4,6 +4,7 @@ services:
   node-app:
     build: .
     image: node-app
+    restart: on-failure
     env_file:
       - .env
     ports:
