@@ -14,32 +14,32 @@ describe('User model', () => {
     });
 
     test('should correctly validate a valid user', async () => {
-      await expect(new User(newUser).validate()).resolves.toBeUndefined();
+      await expect(User.create({ ...newUser })).resolves.not.toBeUndefined();
     });
 
     test('should throw a validation error if email is invalid', async () => {
       newUser.email = 'invalidEmail';
-      await expect(new User(newUser).validate()).rejects.toThrow();
+      await expect(User.create({ ...newUser })).rejects.toThrow();
     });
 
     test('should throw a validation error if password length is less than 8 characters', async () => {
       newUser.password = 'passwo1';
-      await expect(new User(newUser).validate()).rejects.toThrow();
+      await expect(User.create({ ...newUser })).rejects.toThrow();
     });
 
     test('should throw a validation error if password does not contain numbers', async () => {
       newUser.password = 'password';
-      await expect(new User(newUser).validate()).rejects.toThrow();
+      await expect(User.create({ ...newUser })).rejects.toThrow();
     });
 
     test('should throw a validation error if password does not contain letters', async () => {
       newUser.password = '11111111';
-      await expect(new User(newUser).validate()).rejects.toThrow();
+      await expect(User.create({ ...newUser })).rejects.toThrow();
     });
 
     test('should throw a validation error if role is unknown', async () => {
       newUser.role = 'invalid';
-      await expect(new User(newUser).validate()).rejects.toThrow();
+      await expect(User.create({ ...newUser })).rejects.toThrow();
     });
   });
 
@@ -51,7 +51,7 @@ describe('User model', () => {
         password: 'password1',
         role: 'user',
       };
-      expect(new User(newUser).toJSON()).not.toHaveProperty('password');
+      expect(User.create({ ...newUser })).not.toHaveProperty('password');
     });
   });
 });

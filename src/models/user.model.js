@@ -28,6 +28,7 @@ module.exports = (sequelize, DataTypes) => {
         set(value) {
           if (!value.match(/\d/) || !value.match(/[a-zA-Z]/))
             throw new Error('Password must contain at least one letter and one number');
+          if (value.length < 8) throw new Error('Password must not be less than 8 characters');
           const salt = bcrypt.genSaltSync();
           this.setDataValue('password', bcrypt.hashSync(value, salt));
         },
