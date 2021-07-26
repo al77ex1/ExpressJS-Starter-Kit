@@ -41,7 +41,7 @@ describe('Auth routes', () => {
         isEmailVerified: false,
       });
 
-      const dbUser = await User.findById(res.body.user.id);
+      const dbUser = await User.findByPk(res.body.user.id);
       expect(dbUser).toBeDefined();
       expect(dbUser.password).not.toBe(newUser.password);
       expect(dbUser).toMatchObject({ name: newUser.name, email: newUser.email, role: 'user', isEmailVerified: false });
@@ -275,7 +275,7 @@ describe('Auth routes', () => {
         .send({ password: 'password2' })
         .expect(httpStatus.NO_CONTENT);
 
-      const dbUser = await User.findById(userOne._id);
+      const dbUser = await User.findByPk(userOne._id);
       const isPasswordMatch = await bcrypt.compare('password2', dbUser.password);
       expect(isPasswordMatch).toBe(true);
 
@@ -396,7 +396,7 @@ describe('Auth routes', () => {
         .send()
         .expect(httpStatus.NO_CONTENT);
 
-      const dbUser = await User.findById(userOne._id);
+      const dbUser = await User.findByPk(userOne._id);
 
       expect(dbUser.isEmailVerified).toBe(true);
 
