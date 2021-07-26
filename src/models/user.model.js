@@ -1,4 +1,3 @@
-const { Sequelize } = require('sequelize');
 const bcrypt = require('bcryptjs');
 const { v4: uuidv4 } = require('uuid');
 const { Model } = require('sequelize');
@@ -35,11 +34,11 @@ module.exports = (sequelize, DataTypes) => {
       },
       role: {
         type: DataTypes.ENUM(roles),
-        default: 'user',
+        defaultValue: 'user',
       },
       isEmailVerified: {
         type: DataTypes.BOOLEAN,
-        default: false,
+        defaultValue: false,
       },
     },
     {
