@@ -4,7 +4,7 @@ services:
   node-app:
     build: .
     image: node-app
-    restart: on-failure
+    restart: on-failure:8
     env_file:
       - .env
     ports:
