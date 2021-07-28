@@ -1,20 +1,6 @@
 # RESTful API
 
-## Quick Start
-
-To create a project, simply run:
-
-```bash
-npx create-expressjs-app <project-name>
-```
-
-Or
-
-```bash
-npm init expressjs-app <project-name>
-```
-
-## Manual Installation
+## Installation
 
 
 Clone the repo:
