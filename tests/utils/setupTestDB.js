@@ -1,6 +1,7 @@
 const { Sequelize } = require('sequelize');
 const envVars = require('../../src/config/config');
 const logger = require('../../src/config/logger');
+const { User } = require('../../src/models');
 
 const setupTestDB = () => {
   let sequelize = {};
@@ -28,11 +29,7 @@ const setupTestDB = () => {
   });
 
   beforeEach(async () => {
-    await Promise.all(
-      Object.values(sequelize.models).map(function (model) {
-        return model.destroy({ truncate: true });
-      })
-    );
+    await User.destroy({ truncate: { cascade: true } });
   });
 
   afterAll(async () => {
