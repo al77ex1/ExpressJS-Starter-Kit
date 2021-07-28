@@ -13,10 +13,6 @@ describe('User model', () => {
       };
     });
 
-    test('should correctly validate a valid user', async () => {
-      await expect(User.create({ ...newUser })).resolves.not.toBeUndefined();
-    });
-
     test('should throw a validation error if email is invalid', async () => {
       newUser.email = 'invalidEmail';
       await expect(User.create({ ...newUser })).rejects.toThrow();
