@@ -65,5 +65,15 @@ module.exports = (sequelize, DataTypes) => {
     return bcrypt.compare(password, this.password);
   };
 
+  /**
+   * Delete fields ftom model object
+   * @param {array} fields
+   */
+  User.prototype.privateFields = async function (fields) {
+    fields.forEach((field) => {
+      delete this.dataValues[field];
+    });
+  };
+
   return User;
 };
