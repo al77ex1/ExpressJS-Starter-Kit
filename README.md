@@ -20,7 +20,7 @@ npm init expressjs-app <project-name>
 Clone the repo:
 
 ```bash
-git clone --depth 1 https://github.com/
+git clone --depth 1 https://github.com/al77ex1/expressjs-starter-kit
 cd expressjs-starter-kit
 npx rimraf ./.git
 ```
