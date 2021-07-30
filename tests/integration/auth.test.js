@@ -360,7 +360,7 @@ describe('Auth routes', () => {
 
       await request(app)
         .post('/v1/auth/send-verification-email')
-        .set('Authorization', `Bearer ${userOneAccessToken}`)
+        .set('Authorization', `Bearer ${userOneAccessToken(userOne.id)}`)
         .expect(httpStatus.NO_CONTENT);
 
       expect(sendVerificationEmailSpy).toHaveBeenCalledWith(userOne.email, expect.any(String));
@@ -392,13 +392,15 @@ describe('Auth routes', () => {
         .send()
         .expect(httpStatus.NO_CONTENT);
 
-      const dbUser = await User.findByPk(userOne._id);
+      const dbUser = await User.findByPk(userOne.id);
 
       expect(dbUser.isEmailVerified).toBe(true);
 
-      const dbVerifyEmailToken = await Token.countDocuments({
-        user: userOne.id,
-        type: tokenTypes.VERIFY_EMAIL,
+      const dbVerifyEmailToken = await Token.count({
+        where: {
+          user: userOne.id,
+          type: tokenTypes.VERIFY_EMAIL,
+        },
       });
       expect(dbVerifyEmailToken).toBe(0);
     });
@@ -442,14 +444,15 @@ describe('Auth routes', () => {
 
 describe('Auth middleware', () => {
   test('should call next with no errors if access token is valid', async () => {
-    await insertUsers([userOne]);
-    const req = httpMocks.createRequest({ headers: { Authorization: `Bearer ${userOneAccessToken}` } });
+    const users = await insertUsers([userOne]);
+    userOne.id = users[0].id;
+    const req = httpMocks.createRequest({ headers: { Authorization: `Bearer ${userOneAccessToken(userOne.id)}` } });
     const next = jest.fn();
 
     await auth()(req, httpMocks.createResponse(), next);
 
     expect(next).toHaveBeenCalledWith();
-    expect(req.user._id).toEqual(userOne._id);
+    expect(req.user.id).toEqual(userOne.id);
   });
 
   test('should call next with unauthorized error if access token is not found in header', async () => {
@@ -479,9 +482,10 @@ describe('Auth middleware', () => {
   });
 
   test('should call next with unauthorized error if the token is not an access token', async () => {
-    await insertUsers([userOne]);
+    const users = await insertUsers([userOne]);
+    userOne.id = users[0].id;
     const expires = moment().add(config.jwt.accessExpirationMinutes, 'minutes');
-    const refreshToken = tokenService.generateToken(userOne._id, expires, tokenTypes.REFRESH);
+    const refreshToken = tokenService.generateToken(userOne.id, expires, tokenTypes.REFRESH);
     const req = httpMocks.createRequest({ headers: { Authorization: `Bearer ${refreshToken}` } });
     const next = jest.fn();
 
@@ -494,9 +498,10 @@ describe('Auth middleware', () => {
   });
 
   test('should call next with unauthorized error if access token is generated with an invalid secret', async () => {
-    await insertUsers([userOne]);
+    const users = await insertUsers([userOne]);
+    userOne.id = users[0].id;
     const expires = moment().add(config.jwt.accessExpirationMinutes, 'minutes');
-    const accessToken = tokenService.generateToken(userOne._id, expires, tokenTypes.ACCESS, 'invalidSecret');
+    const accessToken = tokenService.generateToken(userOne.id, expires, tokenTypes.ACCESS, 'invalidSecret');
     const req = httpMocks.createRequest({ headers: { Authorization: `Bearer ${accessToken}` } });
     const next = jest.fn();
 
@@ -509,9 +514,10 @@ describe('Auth middleware', () => {
   });
 
   test('should call next with unauthorized error if access token is expired', async () => {
-    await insertUsers([userOne]);
+    const users = await insertUsers([userOne]);
+    userOne.id = users[0].id;
     const expires = moment().subtract(1, 'minutes');
-    const accessToken = tokenService.generateToken(userOne._id, expires, tokenTypes.ACCESS);
+    const accessToken = tokenService.generateToken(userOne.id, expires, tokenTypes.ACCESS);
     const req = httpMocks.createRequest({ headers: { Authorization: `Bearer ${accessToken}` } });
     const next = jest.fn();
 
@@ -524,7 +530,7 @@ describe('Auth middleware', () => {
   });
 
   test('should call next with unauthorized error if user is not found', async () => {
-    const req = httpMocks.createRequest({ headers: { Authorization: `Bearer ${userOneAccessToken}` } });
+    const req = httpMocks.createRequest({ headers: { Authorization: `Bearer ${userOneAccessToken(userOne.id)}` } });
     const next = jest.fn();
 
     await auth()(req, httpMocks.createResponse(), next);
@@ -536,8 +542,9 @@ describe('Auth middleware', () => {
   });
 
   test('should call next with forbidden error if user does not have required rights and userId is not in params', async () => {
-    await insertUsers([userOne]);
-    const req = httpMocks.createRequest({ headers: { Authorization: `Bearer ${userOneAccessToken}` } });
+    const users = await insertUsers([userOne]);
+    userOne.id = users[0].id;
+    const req = httpMocks.createRequest({ headers: { Authorization: `Bearer ${userOneAccessToken(userOne.id)}` } });
     const next = jest.fn();
 
     await auth('anyRight')(req, httpMocks.createResponse(), next);
@@ -547,10 +554,11 @@ describe('Auth middleware', () => {
   });
 
   test('should call next with no errors if user does not have required rights but userId is in params', async () => {
-    await insertUsers([userOne]);
+    const users = await insertUsers([userOne]);
+    userOne.id = users[0].id;
     const req = httpMocks.createRequest({
-      headers: { Authorization: `Bearer ${userOneAccessToken}` },
-      params: { userId: userOne._id.toHexString() },
+      headers: { Authorization: `Bearer ${userOneAccessToken(userOne.id)}` },
+      params: { userId: userOne.id },
     });
     const next = jest.fn();
 
@@ -560,10 +568,11 @@ describe('Auth middleware', () => {
   });
 
   test('should call next with no errors if user has required rights', async () => {
-    await insertUsers([admin]);
+    const users = await insertUsers([admin]);
+    userOne.id = users[0].id;
     const req = httpMocks.createRequest({
-      headers: { Authorization: `Bearer ${adminAccessToken}` },
-      params: { userId: userOne._id.toHexString() },
+      headers: { Authorization: `Bearer ${adminAccessToken(userOne.id)}` },
+      params: { userId: userOne.id },
     });
     const next = jest.fn();
 
