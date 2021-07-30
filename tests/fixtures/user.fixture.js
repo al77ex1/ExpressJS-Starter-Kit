@@ -28,7 +28,8 @@ const admin = {
 };
 
 const insertUsers = async (users) => {
-  await User.bulkCreate(users, { individualHooks: true });
+  const createdUsers = await User.bulkCreate(users, { individualHooks: true });
+  return createdUsers;
 };
 
 module.exports = {
