@@ -31,7 +31,11 @@ const queryUsers = async (filter, options) => {
     parameters.order = [parameters.order.split(':')];
     parameters.order[0][1] = parameters.order[0][1].toUpperCase();
   }
-  const users = await User.findAll({ where: filter, ...parameters });
+  const users = await User.findAndCountAll({
+    attributes: { exclude: ['password', 'createdAt', 'updatedAt'] },
+    where: filter,
+    ...parameters,
+  });
   return users;
 };
 

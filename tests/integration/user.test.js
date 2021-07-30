@@ -23,11 +23,12 @@ describe('User routes', () => {
     });
 
     test('should return 201 and successfully create new user if data is ok', async () => {
-      await insertUsers([admin]);
+      const users = await insertUsers([admin]);
+      admin.id = users[0].id;
 
       const res = await request(app)
         .post('/v1/users')
-        .set('Authorization', `Bearer ${adminAccessToken}`)
+        .set('Authorization', `Bearer ${adminAccessToken(admin.id)}`)
         .send(newUser)
         .expect(httpStatus.CREATED);
 
@@ -47,12 +48,13 @@ describe('User routes', () => {
     });
 
     test('should be able to create an admin as well', async () => {
-      await insertUsers([admin]);
+      const users = await insertUsers([admin]);
+      admin.id = users[0].id;
       newUser.role = 'admin';
 
       const res = await request(app)
         .post('/v1/users')
-        .set('Authorization', `Bearer ${adminAccessToken}`)
+        .set('Authorization', `Bearer ${adminAccessToken(admin.id)}`)
         .send(newUser)
         .expect(httpStatus.CREATED);
 
@@ -67,55 +69,60 @@ describe('User routes', () => {
     });
 
     test('should return 403 error if logged in user is not admin', async () => {
-      await insertUsers([userOne]);
+      const users = await insertUsers([userOne]);
+      userOne.id = users[0].id;
 
       await request(app)
         .post('/v1/users')
-        .set('Authorization', `Bearer ${userOneAccessToken}`)
+        .set('Authorization', `Bearer ${userOneAccessToken(userOne.id)}`)
         .send(newUser)
         .expect(httpStatus.FORBIDDEN);
     });
 
     test('should return 400 error if email is invalid', async () => {
-      await insertUsers([admin]);
+      const users = await insertUsers([admin]);
+      admin.id = users[0].id;
       newUser.email = 'invalidEmail';
 
       await request(app)
         .post('/v1/users')
-        .set('Authorization', `Bearer ${adminAccessToken}`)
+        .set('Authorization', `Bearer ${adminAccessToken(admin.id)}`)
         .send(newUser)
         .expect(httpStatus.BAD_REQUEST);
     });
 
     test('should return 400 error if email is already used', async () => {
-      await insertUsers([admin, userOne]);
+      const users = await insertUsers([admin, userOne]);
+      admin.id = users[0].id;
       newUser.email = userOne.email;
 
       await request(app)
         .post('/v1/users')
-        .set('Authorization', `Bearer ${adminAccessToken}`)
+        .set('Authorization', `Bearer ${adminAccessToken(admin.id)}`)
         .send(newUser)
         .expect(httpStatus.BAD_REQUEST);
     });
 
     test('should return 400 error if password length is less than 8 characters', async () => {
-      await insertUsers([admin]);
+      const users = await insertUsers([admin]);
+      admin.id = users[0].id;
       newUser.password = 'passwo1';
 
       await request(app)
         .post('/v1/users')
-        .set('Authorization', `Bearer ${adminAccessToken}`)
+        .set('Authorization', `Bearer ${adminAccessToken(admin.id)}`)
         .send(newUser)
         .expect(httpStatus.BAD_REQUEST);
     });
 
     test('should return 400 error if password does not contain both letters and numbers', async () => {
-      await insertUsers([admin]);
+      const users = await insertUsers([admin]);
+      admin.id = users[0].id;
       newUser.password = 'password';
 
       await request(app)
         .post('/v1/users')
-        .set('Authorization', `Bearer ${adminAccessToken}`)
+        .set('Authorization', `Bearer ${adminAccessToken(admin.id)}`)
         .send(newUser)
         .expect(httpStatus.BAD_REQUEST);
 
@@ -123,18 +130,19 @@ describe('User routes', () => {
 
       await request(app)
         .post('/v1/users')
-        .set('Authorization', `Bearer ${adminAccessToken}`)
+        .set('Authorization', `Bearer ${adminAccessToken(admin.id)}`)
         .send(newUser)
         .expect(httpStatus.BAD_REQUEST);
     });
 
     test('should return 400 error if role is neither user nor admin', async () => {
-      await insertUsers([admin]);
+      const users = await insertUsers([admin]);
+      admin.id = users[0].id;
       newUser.role = 'invalid';
 
       await request(app)
         .post('/v1/users')
-        .set('Authorization', `Bearer ${adminAccessToken}`)
+        .set('Authorization', `Bearer ${adminAccessToken(admin.id)}`)
         .send(newUser)
         .expect(httpStatus.BAD_REQUEST);
     });
@@ -142,24 +150,22 @@ describe('User routes', () => {
 
   describe('GET /v1/users', () => {
     test('should return 200 and apply the default query options', async () => {
-      await insertUsers([userOne, userTwo, admin]);
+      const users = await insertUsers([userOne, userTwo, admin]);
+      admin.id = users[2].id;
 
       const res = await request(app)
         .get('/v1/users')
-        .set('Authorization', `Bearer ${adminAccessToken}`)
+        .set('Authorization', `Bearer ${adminAccessToken(admin.id)}`)
         .send()
         .expect(httpStatus.OK);
 
       expect(res.body).toEqual({
-        results: expect.any(Array),
-        page: 1,
-        limit: 10,
-        totalPages: 1,
-        totalResults: 3,
+        rows: expect.any(Array),
+        count: 3,
       });
-      expect(res.body.results).toHaveLength(3);
-      expect(res.body.results[0]).toEqual({
-        id: userOne._id.toHexString(),
+      expect(res.body.rows).toHaveLength(3);
+      expect(res.body.rows.find((user) => user.id === userOne.id)).toEqual({
+        id: userOne.id,
         name: userOne.name,
         email: userOne.email,
         role: userOne.role,
@@ -174,102 +180,95 @@ describe('User routes', () => {
     });
 
     test('should return 403 if a non-admin is trying to access all users', async () => {
-      await insertUsers([userOne, userTwo, admin]);
+      const users = await insertUsers([userOne, userTwo, admin]);
+      userOne.id = users[0].id;
 
       await request(app)
         .get('/v1/users')
-        .set('Authorization', `Bearer ${userOneAccessToken}`)
+        .set('Authorization', `Bearer ${userOneAccessToken(userOne.id)}`)
         .send()
         .expect(httpStatus.FORBIDDEN);
     });
 
     test('should correctly apply filter on name field', async () => {
-      await insertUsers([userOne, userTwo, admin]);
+      const users = await insertUsers([userOne, userTwo, admin]);
+      admin.id = users[2].id;
 
       const res = await request(app)
         .get('/v1/users')
-        .set('Authorization', `Bearer ${adminAccessToken}`)
+        .set('Authorization', `Bearer ${adminAccessToken(admin.id)}`)
         .query({ name: userOne.name })
         .send()
         .expect(httpStatus.OK);
 
       expect(res.body).toEqual({
-        results: expect.any(Array),
-        page: 1,
-        limit: 10,
-        totalPages: 1,
-        totalResults: 1,
+        rows: expect.any(Array),
+        count: 1,
       });
-      expect(res.body.results).toHaveLength(1);
-      expect(res.body.results[0].id).toBe(userOne._id.toHexString());
+      expect(res.body.rows).toHaveLength(1);
+      expect(res.body.rows[0].id).toBe(userOne.id);
     });
 
     test('should correctly apply filter on role field', async () => {
-      await insertUsers([userOne, userTwo, admin]);
+      const users = await insertUsers([userOne, userTwo, admin]);
+      admin.id = users[2].id;
 
       const res = await request(app)
         .get('/v1/users')
-        .set('Authorization', `Bearer ${adminAccessToken}`)
+        .set('Authorization', `Bearer ${adminAccessToken(admin.id)}`)
         .query({ role: 'user' })
         .send()
         .expect(httpStatus.OK);
 
       expect(res.body).toEqual({
-        results: expect.any(Array),
-        page: 1,
-        limit: 10,
-        totalPages: 1,
-        totalResults: 2,
+        rows: expect.any(Array),
+        count: 2,
       });
-      expect(res.body.results).toHaveLength(2);
-      expect(res.body.results[0].id).toBe(userOne._id.toHexString());
-      expect(res.body.results[1].id).toBe(userTwo._id.toHexString());
+      expect(res.body.rows).toHaveLength(2);
+      expect(res.body.rows.find((user) => user.id === users[0].id)).toBeDefined();
+      expect(res.body.rows.find((user) => user.id === users[1].id)).toBeDefined();
     });
 
     test('should correctly sort the returned array if descending sort param is specified', async () => {
-      await insertUsers([userOne, userTwo, admin]);
+      const users = await insertUsers([userOne, userTwo, admin]);
+      admin.id = users[2].id;
 
       const res = await request(app)
         .get('/v1/users')
-        .set('Authorization', `Bearer ${adminAccessToken}`)
-        .query({ sortBy: 'role:desc' })
+        .set('Authorization', `Bearer ${adminAccessToken(admin.id)}`)
+        .query({ order: 'role:desc' })
         .send()
         .expect(httpStatus.OK);
 
       expect(res.body).toEqual({
-        results: expect.any(Array),
-        page: 1,
-        limit: 10,
-        totalPages: 1,
-        totalResults: 3,
+        rows: expect.any(Array),
+        count: 3,
       });
-      expect(res.body.results).toHaveLength(3);
-      expect(res.body.results[0].id).toBe(userOne._id.toHexString());
-      expect(res.body.results[1].id).toBe(userTwo._id.toHexString());
-      expect(res.body.results[2].id).toBe(admin._id.toHexString());
+      expect(res.body.rows).toHaveLength(3);
+      expect(res.body.rows[0].id).toBe(users[2].id);
+      expect(res.body.rows.find((user) => user.id === users[0].id)).toBeDefined();
+      expect(res.body.rows.find((user) => user.id === users[1].id)).toBeDefined();
     });
 
     test('should correctly sort the returned array if ascending sort param is specified', async () => {
-      await insertUsers([userOne, userTwo, admin]);
+      const users = await insertUsers([userOne, userTwo, admin]);
+      admin.id = users[2].id;
 
       const res = await request(app)
         .get('/v1/users')
-        .set('Authorization', `Bearer ${adminAccessToken}`)
-        .query({ sortBy: 'role:asc' })
+        .set('Authorization', `Bearer ${adminAccessToken(admin.id)}`)
+        .query({ order: 'role:asc' })
         .send()
         .expect(httpStatus.OK);
 
       expect(res.body).toEqual({
-        results: expect.any(Array),
-        page: 1,
-        limit: 10,
-        totalPages: 1,
-        totalResults: 3,
+        rows: expect.any(Array),
+        count: 3,
       });
-      expect(res.body.results).toHaveLength(3);
-      expect(res.body.results[0].id).toBe(admin._id.toHexString());
-      expect(res.body.results[1].id).toBe(userOne._id.toHexString());
-      expect(res.body.results[2].id).toBe(userTwo._id.toHexString());
+      expect(res.body.rows).toHaveLength(3);
+      expect(res.body.rows[2].id).toBe(users[2].id);
+      expect(res.body.rows.find((user) => user.id === users[0].id)).toBeDefined();
+      expect(res.body.rows.find((user) => user.id === users[1].id)).toBeDefined();
     });
 
     test('should correctly sort the returned array if multiple sorting criteria are specified', async () => {
