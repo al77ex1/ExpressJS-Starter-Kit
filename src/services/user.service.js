@@ -11,7 +11,9 @@ const createUser = async (userBody) => {
   if (await User.count({ where: { email: userBody.email } })) {
     throw new ApiError(httpStatus.BAD_REQUEST, 'Email already taken');
   }
-  return User.create(userBody);
+  const user = await User.create(userBody);
+  await user.privateFields(['password', 'createdAt', 'updatedAt']);
+  return user;
 };
 
 /**
