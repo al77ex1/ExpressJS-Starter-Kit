@@ -16,6 +16,7 @@ const loginUserWithEmailAndPassword = async (email, password) => {
   if (!user || !(await user.isPasswordMatch(password))) {
     throw new ApiError(httpStatus.UNAUTHORIZED, 'Incorrect email or password');
   }
+  await user.privateFields(['password', 'createdAt', 'updatedAt']);
   return user;
 };
 

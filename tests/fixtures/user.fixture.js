@@ -1,10 +1,7 @@
-const bcrypt = require('bcryptjs');
 const faker = require('faker');
 const { User } = require('../../src/models');
 
 const password = 'password1';
-const salt = bcrypt.genSaltSync(8);
-const hashedPassword = bcrypt.hashSync(password, salt);
 
 const userOne = {
   name: faker.name.findName(),
@@ -31,10 +28,7 @@ const admin = {
 };
 
 const insertUsers = async (users) => {
-  await User.bulkCreate(
-    users.map((user) => ({ ...user, password: hashedPassword })),
-    { individualHooks: true }
-  );
+  await User.bulkCreate(users, { individualHooks: true });
 };
 
 module.exports = {
