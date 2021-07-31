@@ -304,56 +304,53 @@ describe('User routes', () => {
     });
 
     test('should limit returned array if limit param is specified', async () => {
-      await insertUsers([userOne, userTwo, admin]);
+      const users = await insertUsers([userOne, userTwo, admin]);
+      admin.id = users[2].id;
 
       const res = await request(app)
         .get('/v1/users')
-        .set('Authorization', `Bearer ${adminAccessToken}`)
+        .set('Authorization', `Bearer ${adminAccessToken(admin.id)}`)
         .query({ limit: 2 })
         .send()
         .expect(httpStatus.OK);
 
       expect(res.body).toEqual({
-        results: expect.any(Array),
-        page: 1,
-        limit: 2,
-        totalPages: 2,
-        totalResults: 3,
+        rows: expect.any(Array),
+        count: 3,
       });
-      expect(res.body.results).toHaveLength(2);
-      expect(res.body.results[0].id).toBe(userOne._id.toHexString());
-      expect(res.body.results[1].id).toBe(userTwo._id.toHexString());
+
+      expect(res.body.rows).toHaveLength(2);
+      expect(users.find((user) => user.id === res.body.rows[0].id)).toBeDefined();
+      expect(users.find((user) => user.id === res.body.rows[1].id)).toBeDefined();
     });
 
     test('should return the correct page if page and limit params are specified', async () => {
-      await insertUsers([userOne, userTwo, admin]);
+      const users = await insertUsers([userOne, userTwo, admin]);
+      admin.id = users[2].id;
 
       const res = await request(app)
         .get('/v1/users')
-        .set('Authorization', `Bearer ${adminAccessToken}`)
-        .query({ page: 2, limit: 2 })
+        .set('Authorization', `Bearer ${adminAccessToken(admin.id)}`)
+        .query({ offset: 2, limit: 2 })
         .send()
         .expect(httpStatus.OK);
 
       expect(res.body).toEqual({
-        results: expect.any(Array),
-        page: 2,
-        limit: 2,
-        totalPages: 2,
-        totalResults: 3,
+        rows: expect.any(Array),
+        count: 3,
       });
-      expect(res.body.results).toHaveLength(1);
-      expect(res.body.results[0].id).toBe(admin._id.toHexString());
+      expect(res.body.rows).toHaveLength(1);
     });
   });
 
   describe('GET /v1/users/:userId', () => {
     test('should return 200 and the user object if data is ok', async () => {
-      await insertUsers([userOne]);
+      const users = await insertUsers([userOne]);
+      userOne.id = users[0].id;
 
       const res = await request(app)
-        .get(`/v1/users/${userOne._id}`)
-        .set('Authorization', `Bearer ${userOneAccessToken}`)
+        .get(`/v1/users/${userOne.id}`)
+        .set('Authorization', `Bearer ${userOneAccessToken(userOne.id)}`)
         .send()
         .expect(httpStatus.OK);
 
