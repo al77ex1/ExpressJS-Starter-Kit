@@ -28,8 +28,12 @@ const createUser = async (userBody) => {
 const queryUsers = async (filter, options) => {
   const parameters = options;
   if (parameters.order) {
-    parameters.order = [parameters.order.split(':')];
-    parameters.order[0][1] = parameters.order[0][1].toUpperCase();
+    parameters.order = parameters.order.split(',');
+    parameters.order = parameters.order.map((item) => {
+      const order = item.split(':');
+      order[1] = order[1].toUpperCase();
+      return order;
+    });
   }
   const users = await User.findAndCountAll({
     attributes: { exclude: ['password', 'createdAt', 'updatedAt'] },
