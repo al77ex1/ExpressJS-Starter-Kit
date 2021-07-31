@@ -272,36 +272,34 @@ describe('User routes', () => {
     });
 
     test('should correctly sort the returned array if multiple sorting criteria are specified', async () => {
-      await insertUsers([userOne, userTwo, admin]);
+      const users = await insertUsers([userOne, userTwo, admin]);
+      admin.id = users[2].id;
 
       const res = await request(app)
         .get('/v1/users')
-        .set('Authorization', `Bearer ${adminAccessToken}`)
-        .query({ sortBy: 'role:desc,name:asc' })
+        .set('Authorization', `Bearer ${adminAccessToken(admin.id)}`)
+        .query({ order: 'role:desc,name:asc' })
         .send()
         .expect(httpStatus.OK);
 
       expect(res.body).toEqual({
-        results: expect.any(Array),
-        page: 1,
-        limit: 10,
-        totalPages: 1,
-        totalResults: 3,
+        rows: expect.any(Array),
+        count: 3,
       });
-      expect(res.body.results).toHaveLength(3);
+      expect(res.body.rows).toHaveLength(3);
 
-      const expectedOrder = [userOne, userTwo, admin].sort((a, b) => {
-        if (a.role < b.role) {
+      const expectedOrder = users.sort((a, b) => {
+        if (a.role > b.role) {
           return 1;
         }
-        if (a.role > b.role) {
+        if (a.role < b.role) {
           return -1;
         }
         return a.name < b.name ? -1 : 1;
       });
 
       expectedOrder.forEach((user, index) => {
-        expect(res.body.results[index].id).toBe(user._id.toHexString());
+        expect(res.body.rows[index].id).toBe(user.id);
       });
     });
 
