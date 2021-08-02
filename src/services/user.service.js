@@ -49,7 +49,7 @@ const queryUsers = async (filter, options) => {
  * @returns {Promise<User>}
  */
 const getUserById = async (id) => {
-  return User.findByPk(id);
+  return User.findByPk(id, { attributes: { exclude: ['password', 'createdAt', 'updatedAt'] } });
 };
 
 /**
@@ -68,11 +68,9 @@ const getUserByEmail = async (email) => {
  * @returns {Promise<User>}
  */
 const updateUserById = async (userId, updateBody) => {
+  if (!User.count({ where: { id: userId } })) throw new ApiError(httpStatus.NOT_FOUND, 'User not found');
+  await User.update(updateBody, { where: { id: userId } });
   const user = await getUserById(userId);
-  if (!user) {
-    throw new ApiError(httpStatus.NOT_FOUND, 'User not found');
-  }
-  await User.update(updateBody, { where: { id: user.id } });
   return user;
 };
 
