@@ -615,7 +615,7 @@ describe('User routes', () => {
         .patch(`/v1/users/${userOne.id}`)
         .set('Authorization', `Bearer ${userOneAccessToken(userOne.id)}`)
         .send(updateBody)
-        .expect(httpStatus.OK);
+        .expect(httpStatus.BAD_REQUEST);
     });
 
     test('should return 400 if password length is less than 8 characters', async () => {
