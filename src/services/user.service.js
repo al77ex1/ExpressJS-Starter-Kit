@@ -8,9 +8,9 @@ const ApiError = require('../utils/ApiError');
  * @returns {Promise<User>}
  */
 const createUser = async (userBody) => {
-  if (await User.count({ where: { email: userBody.email } })) {
+  if (await User.count({ where: { email: userBody.email } }))
     throw new ApiError(httpStatus.BAD_REQUEST, 'Email already taken');
-  }
+
   const user = await User.create(userBody);
   await user.privateFields(['password', 'createdAt', 'updatedAt']);
   return user;
@@ -68,9 +68,12 @@ const getUserByEmail = async (email) => {
  * @returns {Promise<User>}
  */
 const updateUserById = async (userId, updateBody) => {
-  if ((await User.count({ where: { id: userId } })) === 0) throw new ApiError(httpStatus.NOT_FOUND, 'User not found');
+  let user = await getUserById(userId);
+  if (!user) throw new ApiError(httpStatus.NOT_FOUND, 'User not found');
+  if (updateBody.email && (await User.count({ where: { email: updateBody.email } })))
+    throw new ApiError(httpStatus.BAD_REQUEST, 'Email already taken');
   await User.update(updateBody, { where: { id: userId } });
-  const user = await getUserById(userId);
+  user = await getUserById(userId);
   return user;
 };
 
