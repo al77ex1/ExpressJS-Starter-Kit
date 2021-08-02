@@ -525,108 +525,129 @@ describe('User routes', () => {
     });
 
     test('should return 403 if user is updating another user', async () => {
-      await insertUsers([userOne, userTwo]);
+      const users = await insertUsers([userOne, userTwo]);
+      userOne.id = users[0].id;
+      userTwo.id = users[1].id;
+
       const updateBody = { name: faker.name.findName() };
 
       await request(app)
-        .patch(`/v1/users/${userTwo._id}`)
-        .set('Authorization', `Bearer ${userOneAccessToken}`)
+        .patch(`/v1/users/${userTwo.id}`)
+        .set('Authorization', `Bearer ${userOneAccessToken(userOne.id)}`)
         .send(updateBody)
         .expect(httpStatus.FORBIDDEN);
     });
 
     test('should return 200 and successfully update user if admin is updating another user', async () => {
-      await insertUsers([userOne, admin]);
+      const users = await insertUsers([userOne, admin]);
+      userOne.id = users[0].id;
+      admin.id = users[1].id;
+
       const updateBody = { name: faker.name.findName() };
 
       await request(app)
-        .patch(`/v1/users/${userOne._id}`)
-        .set('Authorization', `Bearer ${adminAccessToken}`)
+        .patch(`/v1/users/${userOne.id}`)
+        .set('Authorization', `Bearer ${adminAccessToken(admin.id)}`)
         .send(updateBody)
         .expect(httpStatus.OK);
     });
 
     test('should return 404 if admin is updating another user that is not found', async () => {
-      await insertUsers([admin]);
+      const users = await insertUsers([admin]);
+      admin.id = users[0].id;
+
       const updateBody = { name: faker.name.findName() };
 
       await request(app)
-        .patch(`/v1/users/${userOne._id}`)
-        .set('Authorization', `Bearer ${adminAccessToken}`)
+        .patch(`/v1/users/${userOne.id}`)
+        .set('Authorization', `Bearer ${adminAccessToken(admin.id)}`)
         .send(updateBody)
         .expect(httpStatus.NOT_FOUND);
     });
 
     test('should return 400 error if userId is not a valid id', async () => {
-      await insertUsers([admin]);
+      const users = await insertUsers([admin]);
+      admin.id = users[0].id;
+
       const updateBody = { name: faker.name.findName() };
 
       await request(app)
         .patch(`/v1/users/invalidId`)
-        .set('Authorization', `Bearer ${adminAccessToken}`)
+        .set('Authorization', `Bearer ${adminAccessToken(admin.id)}`)
         .send(updateBody)
         .expect(httpStatus.BAD_REQUEST);
     });
 
     test('should return 400 if email is invalid', async () => {
-      await insertUsers([userOne]);
+      const users = await insertUsers([userOne]);
+      userOne.id = users[0].id;
+
       const updateBody = { email: 'invalidEmail' };
 
       await request(app)
-        .patch(`/v1/users/${userOne._id}`)
-        .set('Authorization', `Bearer ${userOneAccessToken}`)
+        .patch(`/v1/users/${userOne.id}`)
+        .set('Authorization', `Bearer ${userOneAccessToken(userOne.id)}`)
         .send(updateBody)
         .expect(httpStatus.BAD_REQUEST);
     });
 
     test('should return 400 if email is already taken', async () => {
-      await insertUsers([userOne, userTwo]);
+      const users = await insertUsers([userOne, userTwo]);
+      userOne.id = users[0].id;
+      userTwo.id = users[1].id;
+
       const updateBody = { email: userTwo.email };
 
       await request(app)
-        .patch(`/v1/users/${userOne._id}`)
-        .set('Authorization', `Bearer ${userOneAccessToken}`)
+        .patch(`/v1/users/${userOne.id}`)
+        .set('Authorization', `Bearer ${userOneAccessToken(userOne.id)}`)
         .send(updateBody)
         .expect(httpStatus.BAD_REQUEST);
     });
 
     test('should not return 400 if email is my email', async () => {
-      await insertUsers([userOne]);
+      const users = await insertUsers([userOne]);
+      userOne.id = users[0].id;
+
       const updateBody = { email: userOne.email };
 
       await request(app)
-        .patch(`/v1/users/${userOne._id}`)
-        .set('Authorization', `Bearer ${userOneAccessToken}`)
+        .patch(`/v1/users/${userOne.id}`)
+        .set('Authorization', `Bearer ${userOneAccessToken(userOne.id)}`)
         .send(updateBody)
         .expect(httpStatus.OK);
     });
 
     test('should return 400 if password length is less than 8 characters', async () => {
-      await insertUsers([userOne]);
+      const users = await insertUsers([userOne]);
+      userOne.id = users[0].id;
+
       const updateBody = { password: 'passwo1' };
 
       await request(app)
-        .patch(`/v1/users/${userOne._id}`)
-        .set('Authorization', `Bearer ${userOneAccessToken}`)
+        .patch(`/v1/users/${userOne.id}`)
+        .set('Authorization', `Bearer ${userOneAccessToken(userOne.id)}`)
         .send(updateBody)
         .expect(httpStatus.BAD_REQUEST);
     });
 
     test('should return 400 if password does not contain both letters and numbers', async () => {
-      await insertUsers([userOne]);
+      const users = await insertUsers([userOne]);
+      userOne.id = users[0].id;
+
       const updateBody = { password: 'password' };
 
       await request(app)
-        .patch(`/v1/users/${userOne._id}`)
-        .set('Authorization', `Bearer ${userOneAccessToken}`)
+        .patch(`/v1/users/${userOne.id}`)
+        .set('Authorization', `Bearer ${userOneAccessToken(userOne.id)}`)
         .send(updateBody)
         .expect(httpStatus.BAD_REQUEST);
 
       updateBody.password = '11111111';
 
       await request(app)
-        .patch(`/v1/users/${userOne._id}`)
-        .set('Authorization', `Bearer ${userOneAccessToken}`)
+        .patch(`/v1/users/${userOne.id}`)
+        .set('Authorization', `Bearer ${userOneAccessToken(userOne.id)}`)
         .send(updateBody)
         .expect(httpStatus.BAD_REQUEST);
     });

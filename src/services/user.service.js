@@ -68,7 +68,7 @@ const getUserByEmail = async (email) => {
  * @returns {Promise<User>}
  */
 const updateUserById = async (userId, updateBody) => {
-  if (!User.count({ where: { id: userId } })) throw new ApiError(httpStatus.NOT_FOUND, 'User not found');
+  if ((await User.count({ where: { id: userId } })) === 0) throw new ApiError(httpStatus.NOT_FOUND, 'User not found');
   await User.update(updateBody, { where: { id: userId } });
   const user = await getUserById(userId);
   return user;
