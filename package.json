@@ -23,10 +23,10 @@
     "docker:dev": "docker-compose -f docker-compose.yml -f docker-compose.dev.yml up",
     "docker:test": "docker-compose -f docker-compose.yml -f docker-compose.test.yml up",
     "prepare": "husky install",
-    "makemigrations": "yarn sequelize-mig migration:make -n migration",
-    "runmigrations": "yarn sequelize db:migrate",
-    "docker:makemigrations": "docker exec node-app-dev yarn sequelize-mig migration:make -n migration",
-    "docker:runmigrations": "docker exec node-app-dev yarn sequelize db:migrate"
+    "make:migrations": "yarn sequelize-mig migration:make -n migration",
+    "run:migrations": "yarn sequelize db:migrate",
+    "docker:make:migrations": "docker exec node-app-dev yarn sequelize-mig migration:make -n migration",
+    "docker:run:migrations": "docker exec node-app-dev yarn sequelize db:migrate"
   },
   "keywords": [
     "node",
