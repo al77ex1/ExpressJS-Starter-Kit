@@ -8,7 +8,7 @@ const swaggerDef = {
     version,
     license: {
       name: 'MIT',
-      url: 'https://github.com/al77ex1/expressjs-starter-kit',
+      url: 'https://github.com/al77ex1/ExpressJS-Starter-Kit',
     },
   },
   servers: [

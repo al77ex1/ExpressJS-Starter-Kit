@@ -6,7 +6,7 @@
 Clone the repo:
 
 ```bash
-git clone --depth 1 https://github.com/al77ex1/expressjs-starter-kit
+git clone --depth 1 https://github.com/al77ex1/ExpressJS-Starter-Kit
 cd expressjs-starter-kit
 npx rimraf ./.git
 ```
