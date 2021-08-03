@@ -221,7 +221,7 @@ logger.debug('message'); // level 5
 Linting is done using [ESLint](https://eslint.org/) and [Prettier](https://prettier.io).
 
 
-## Auto migrations
+## Automatic migrations
 
 Creating migrations:
 
