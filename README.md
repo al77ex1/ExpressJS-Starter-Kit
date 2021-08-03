@@ -225,17 +225,17 @@ Linting is done using [ESLint](https://eslint.org/) and [Prettier](https://prett
 
 Creating migrations:
 
-`yarn migrations:make`
+`yarn migration:make`
 
 or
 
-`yarn docker:migrations:make`
+`yarn docker:migration:make`
 
 Run your migration:
 
-`yarn migrations:run`
+`yarn migration:run`
 
 or
 
-`yarn docker:migrations:run`
+`yarn docker:migration:run`
 
