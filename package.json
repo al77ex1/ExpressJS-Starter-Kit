@@ -28,10 +28,10 @@
     "migration:run": "yarn sequelize db:migrate",
     "migration:undo": "yarn sequelize db:migrate:undo",
     "migration:undo:all": "yarn sequelize db:migrate:undo:all",
-    "docker:migration:make": "docker exec node-app-dev yarn sequelize-mig migration:make -n migration",
-    "docker:migration:run": "docker exec node-app-dev yarn sequelize db:migrate",
-    "docker:migration:undo": "docker exec node-app-dev yarn sequelize db:migrate:undo",
-    "docker:migration:undo:all": "docker exec node-app-dev yarn sequelize db:migrate:undo:all"
+    "docker:migration:make": "docker exec node-app-dev yarn migration:make",
+    "docker:migration:run": "docker exec node-app-dev yarn migration:run",
+    "docker:migration:undo": "docker exec node-app-dev yarn migration:undo",
+    "docker:migration:undo:all": "docker exec node-app-dev yarn migration:undo:all"
   },
   "keywords": [
     "node",
