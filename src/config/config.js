@@ -27,6 +27,7 @@ const envVarsSchema = Joi.object()
     SMTP_USERNAME: Joi.string().description('username for email server'),
     SMTP_PASSWORD: Joi.string().description('password for email server'),
     EMAIL_FROM: Joi.string().description('the from field in the emails sent by the app'),
+    UMZUG: Joi.string().description('migration tool for Node.JS'),
   })
   .unknown();
 
@@ -39,6 +40,7 @@ if (error) {
 module.exports = {
   env: envVars.NODE_ENV,
   port: envVars.PORT,
+  umzug: envVars.UMZUG,
   development: {
     username: envVars.DB_USER,
     password: envVars.DB_PWD,

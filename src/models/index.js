@@ -53,8 +53,10 @@ const umzug = new Umzug({
 });
 
 (async () => {
-  await umzug.up();
-  logger.info('All migrations performed successfully');
+  if (envVars.umzug !== 'false') {
+    await umzug.up();
+    logger.info('All migrations performed successfully');
+  }
 })();
 
 module.exports = db;
