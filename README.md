@@ -223,7 +223,7 @@ Linting is done using [ESLint](https://eslint.org/) and [Prettier](https://prett
 
 ## Automatic migrations
 
-Run the project in development mode then create a migration:
+Run the project in development mode then create a migration in other terminal:
 
 `yarn migration:make`
 
