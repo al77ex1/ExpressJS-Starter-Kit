@@ -11,6 +11,8 @@ const config = {
     charset: 'utf8',
   },
   define: {
+    charset: 'utf8',
+    collate: 'utf8_general_ci',
     timestamps: false,
   },
   logging: false,
