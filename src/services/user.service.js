@@ -1,6 +1,7 @@
 const httpStatus = require('http-status');
 const { User } = require('../models');
 const ApiError = require('../utils/ApiError');
+const convertOptions = require('../utils/convertOptions');
 
 /**
  * Create a user
@@ -23,18 +24,10 @@ const createUser = async (userBody) => {
  * @param {string} [options.order] - Order option in the format: sortField:(desc|asc)
  * @param {number} [options.limit] - Maximum number of results per page (default = 10)
  * @param {number} [options.offset] - Current offset (default = 1)
- * @returns {Promise<QueryResult>}
+ * @returns {Object}
  */
 const queryUsers = async (filter, options) => {
-  const parameters = options;
-  if (parameters.order) {
-    parameters.order = parameters.order.split(',');
-    parameters.order = parameters.order.map((item) => {
-      const order = item.split(':');
-      order[1] = order[1].toUpperCase();
-      return order;
-    });
-  }
+  const parameters = convertOptions(options);
   const users = await User.findAndCountAll({
     attributes: { exclude: ['password', 'createdAt', 'updatedAt'] },
     where: filter,
@@ -45,7 +38,7 @@ const queryUsers = async (filter, options) => {
 
 /**
  * Get user by id
- * @param {ObjectId} id
+ * @param {Number} id
  * @returns {Promise<User>}
  */
 const getUserById = async (id) => {
@@ -63,7 +56,7 @@ const getUserByEmail = async (email) => {
 
 /**
  * Update user by id
- * @param {ObjectId} userId
+ * @param {Number} userId
  * @param {Object} updateBody
  * @returns {Promise<User>}
  */
@@ -82,7 +75,7 @@ const updateUserById = async (userId, updateBody) => {
 
 /**
  * Delete user by id
- * @param {ObjectId} userId
+ * @param {Number} userId
  * @returns {Promise<User>}
  */
 const deleteUserById = async (userId) => {
@@ -91,7 +84,6 @@ const deleteUserById = async (userId) => {
     throw new ApiError(httpStatus.NOT_FOUND, 'User not found');
   }
   await user.destroy({ where: { id: userId } });
-  return user;
 };
 
 module.exports = {
