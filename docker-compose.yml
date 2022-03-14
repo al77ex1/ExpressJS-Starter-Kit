@@ -19,6 +19,7 @@ services:
 
   db:
     image: mysql:8
+    container_name: db-app
     cap_add:
       - ALL
     command: [ '--default-authentication-plugin=mysql_native_password',  '--character-set-server=utf8mb4', '--collation-server=utf8mb4_unicode_ci' ]
