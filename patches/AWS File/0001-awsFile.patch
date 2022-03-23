@@ -1,0 +1,643 @@
+From 21577afd0e6058f3f6d5ac7963f36af51e6471c6 Mon Sep 17 00:00:00 2001
+From: Alex Shatunov <al77ex1@gmail.com>
+Date: Tue, 22 Mar 2022 21:05:19 +0300
+Subject: [PATCH] awsFile
+
+---
+ _package.json                         | 104 ++++++++++++++++++++
+ src/config/_config.js                 |  98 +++++++++++++++++++
+ src/config/_roles.js                  |  12 +++
+ src/controllers/_index.js             |   3 +
+ src/controllers/awsFile.controller.js |  25 +++++
+ src/routes/v1/_index.js               |  44 +++++++++
+ src/routes/v1/awsFile.route.js        | 133 ++++++++++++++++++++++++++
+ src/services/_index.js                |   5 +
+ src/services/awsFile.service.js       |  91 ++++++++++++++++++
+ src/validations/_index.js             |   3 +
+ src/validations/awsFile.validation.js |  26 +++++
+ 11 files changed, 544 insertions(+)
+ create mode 100644 _package.json
+ create mode 100644 src/config/_config.js
+ create mode 100644 src/config/_roles.js
+ create mode 100644 src/controllers/_index.js
+ create mode 100644 src/controllers/awsFile.controller.js
+ create mode 100644 src/routes/v1/_index.js
+ create mode 100644 src/routes/v1/awsFile.route.js
+ create mode 100644 src/services/_index.js
+ create mode 100644 src/services/awsFile.service.js
+ create mode 100644 src/validations/_index.js
+ create mode 100644 src/validations/awsFile.validation.js
+
+diff --git a/_package.json b/_package.json
+new file mode 100644
+index 0000000..ec74edd
+--- /dev/null
++++ b/_package.json
+@@ -0,0 +1,104 @@
++{
++  "name": "create-expressjs-app",
++  "version": "0.1",
++  "main": "src/index.js",
++  "repository": "https://github.com/al77ex1/ExpressJS-Starter-Kit",
++  "author": "al77ex <al77ex1@gmail.com>",
++  "license": "MIT",
++  "engines": {
++    "node": ">=14.17.4"
++  },
++  "scripts": {
++    "start": "pm2 start ecosystem.config.json --no-daemon",
++    "dev": "cross-env NODE_ENV=development nodemon --exitcrash src/index.js",
++    "test": "cross-env NODE_ENV=test jest -i --colors --verbose --detectOpenHandles",
++    "test:watch": "cross-env NODE_ENV=test jest -i --watchAll",
++    "coverage": "cross-env NODE_ENV=test jest -i --coverage",
++    "coverage:coveralls": "cross-env NODE_ENV=test jest -i --coverage --coverageReporters=text-lcov | coveralls",
++    "lint": "eslint .",
++    "lint:fix": "eslint . --fix",
++    "prettier": "prettier --check **/*.js",
++    "prettier:fix": "prettier --write **/*.js",
++    "docker:prod": "docker-compose -f docker-compose.yml -f docker-compose.prod.yml up",
++    "docker:dev": "docker-compose -f docker-compose.yml -f docker-compose.dev.yml up",
++    "docker:test": "docker-compose -f docker-compose.yml -f docker-compose.test.yml up",
++    "docker:coverage": "docker-compose -f docker-compose.yml -f docker-compose.coverage.yml up",
++    "prepare": "husky install",
++    "migration:make": "cross-env UMZUG=false yarn sequelize-mig migration:make -n migration",
++    "migration:run": "cross-env UMZUG=false yarn sequelize db:migrate",
++    "migration:undo": "cross-env UMZUG=false yarn sequelize db:migrate:undo",
++    "migration:undo:all": "cross-env UMZUG=false yarn sequelize db:migrate:undo:all",
++    "docker:migration:make": "docker exec node-app-dev yarn migration:make",
++    "docker:migration:run": "docker exec node-app-dev yarn migration:run",
++    "docker:migration:undo": "docker exec node-app-dev yarn migration:undo",
++    "docker:migration:undo:all": "docker exec node-app-dev yarn migration:undo:all"
++  },
++  "keywords": [
++    "node",
++    "node.js",
++    "generator",
++    "express",
++    "rest",
++    "api",
++    "es6",
++    "es7",
++    "es8",
++    "es9",
++    "jest",
++    "travis",
++    "docker",
++    "passport",
++    "joi",
++    "eslint",
++    "prettier"
++  ],
++  "dependencies": {
++    "aws-sdk": "^2.1073.0",
++    "bcryptjs": "^2.4.3",
++    "compression": "^1.7.4",
++    "cors": "^2.8.5",
++    "cross-env": "^7.0.3",
++    "dotenv": "^10.0.0",
++    "express": "^4.17.1",
++    "express-rate-limit": "^5.3.0",
++    "helmet": "^4.6.0",
++    "http-status": "^1.5.0",
++    "joi": "^17.4.2",
++    "jsonwebtoken": "^8.5.1",
++    "moment": "^2.29.1",
++    "morgan": "^1.10.0",
++    "mysql2": "^2.2.5",
++    "nodemailer": "^6.6.3",
++    "passport": "^0.4.1",
++    "passport-jwt": "^4.0.0",
++    "pm2": "^5.1.0",
++    "sequelize": "^6.6.5",
++    "sequelize-cli": "^6.2.0",
++    "sequelize-mig": "^3.1.3",
++    "swagger-jsdoc": "^6.1.0",
++    "swagger-ui-express": "^4.1.6",
++    "umzug": "^2.3.0",
++    "uuid": "^8.3.2",
++    "validator": "^13.6.0",
++    "winston": "^3.3.3",
++    "xss-clean": "^0.1.1"
++  },
++  "devDependencies": {
++    "coveralls": "^3.1.1",
++    "eslint": "^7.32.0",
++    "eslint-config-airbnb-base": "^14.2.1",
++    "eslint-config-prettier": "^8.3.0",
++    "eslint-plugin-import": "^2.23.4",
++    "eslint-plugin-jest": "^24.4.0",
++    "eslint-plugin-prettier": "^3.4.0",
++    "eslint-plugin-security": "^1.4.0",
++    "faker": "^5.5.3",
++    "husky": "^7.0.1",
++    "jest": "^27.0.6",
++    "lint-staged": "^11.1.1",
++    "node-mocks-http": "^1.10.1",
++    "nodemon": "^2.0.12",
++    "prettier": "^2.3.2",
++    "supertest": "^6.1.4"
++  }
++}
+diff --git a/src/config/_config.js b/src/config/_config.js
+new file mode 100644
+index 0000000..8bf78fd
+--- /dev/null
++++ b/src/config/_config.js
+@@ -0,0 +1,98 @@
++const dotenv = require('dotenv');
++const path = require('path');
++const Joi = require('joi');
++
++dotenv.config({ path: path.join(__dirname, '../../.env') });
++
++const envVarsSchema = Joi.object()
++  .keys({
++    NODE_ENV: Joi.string().valid('production', 'development', 'test').required(),
++    PORT: Joi.number().default(3000),
++    DB_HOST: Joi.string(),
++    DB_NAME: Joi.string(),
++    DB_USER: Joi.string(),
++    DB_PWD: Joi.string(),
++    DB_ROOT_PWD: Joi.string(),
++    JWT_SECRET: Joi.string().required().description('JWT secret key'),
++    JWT_ACCESS_EXPIRATION_MINUTES: Joi.number().default(30).description('minutes after which access tokens expire'),
++    JWT_REFRESH_EXPIRATION_DAYS: Joi.number().default(30).description('days after which refresh tokens expire'),
++    JWT_RESET_PASSWORD_EXPIRATION_MINUTES: Joi.number()
++      .default(10)
++      .description('minutes after which reset password token expires'),
++    JWT_VERIFY_EMAIL_EXPIRATION_MINUTES: Joi.number()
++      .default(10)
++      .description('minutes after which verify email token expires'),
++    SMTP_HOST: Joi.string().description('server that will send the emails'),
++    SMTP_PORT: Joi.number().description('port to connect to the email server'),
++    SMTP_USERNAME: Joi.string().description('username for email server'),
++    SMTP_PASSWORD: Joi.string().description('password for email server'),
++    EMAIL_FROM: Joi.string().description('the from field in the emails sent by the app'),
++    UMZUG: Joi.string().description('migration tool for Node.JS'),
++    AWS_ACCESS_KEY_ID: Joi.string().description('access key for AWS'),
++    AWS_SECRET_ACCESS_KEY: Joi.string().description('secret access key for AWS'),
++    AWS_BUCKET_NAME: Joi.string().description('bucket name for AWS'),
++  })
++  .unknown();
++
++const { value: envVars, error } = envVarsSchema.prefs({ errors: { label: 'key' } }).validate(process.env);
++
++if (error) {
++  throw new Error(`Config validation error: ${error.message}`);
++}
++
++module.exports = {
++  env: envVars.NODE_ENV,
++  port: envVars.PORT,
++  umzug: envVars.UMZUG,
++  development: {
++    username: envVars.DB_USER,
++    password: envVars.DB_PWD,
++    database: envVars.DB_NAME,
++    host: envVars.DB_HOST,
++    dialect: 'mysql',
++    rootPassword: envVars.DB_ROOT_PWD,
++    logging: false,
++    awsAccessKeyId: envVars.AWS_ACCESS_KEY_ID,
++    awsSecretAccessKey: envVars.AWS_SECRET_ACCESS_KEY,
++    awsBucketName: envVars.AWS_BUCKET_NAME,
++  },
++  test: {
++    username: envVars.DB_USER,
++    password: envVars.DB_PWD,
++    database: envVars.DB_NAME,
++    host: envVars.DB_HOST,
++    dialect: 'mysql',
++    rootPassword: envVars.DB_ROOT_PWD,
++    logging: false,
++  },
++  production: {
++    username: envVars.DB_USER,
++    password: envVars.DB_PWD,
++    database: envVars.DB_NAME,
++    host: envVars.DB_HOST,
++    dialect: 'mysql',
++    rootPassword: envVars.DB_ROOT_PWD,
++    logging: false,
++    awsAccessKeyId: envVars.AWS_ACCESS_KEY_ID,
++    awsSecretAccessKey: envVars.AWS_SECRET_ACCESS_KEY,
++    awsBucketName: envVars.AWS_BUCKET_NAME,
++  },
++  jwt: {
++    secret: envVars.JWT_SECRET,
++    accessExpirationMinutes: envVars.JWT_ACCESS_EXPIRATION_MINUTES,
++    refreshExpirationDays: envVars.JWT_REFRESH_EXPIRATION_DAYS,
++    resetPasswordExpirationMinutes: envVars.JWT_RESET_PASSWORD_EXPIRATION_MINUTES,
++    verifyEmailExpirationMinutes: envVars.JWT_VERIFY_EMAIL_EXPIRATION_MINUTES,
++  },
++  email: {
++    smtp: {
++      host: envVars.SMTP_HOST,
++      port: envVars.SMTP_PORT,
++      auth: {
++        user: envVars.SMTP_USERNAME,
++        pass: envVars.SMTP_PASSWORD,
++      },
++    },
++    from: envVars.EMAIL_FROM,
++  },
++};
+diff --git a/src/config/_roles.js b/src/config/_roles.js
+new file mode 100644
+index 0000000..5d625ef
+--- /dev/null
++++ b/src/config/_roles.js
+@@ -0,0 +1,12 @@
++const allRoles = {
++  user: [],
++  admin: ['getUsers', 'manageUsers', 'manageFiles'],
++};
++
++const roles = Object.keys(allRoles);
++const roleRights = new Map(Object.entries(allRoles));
++
++module.exports = {
++  roles,
++  roleRights,
++};
+diff --git a/src/controllers/_index.js b/src/controllers/_index.js
+new file mode 100644
+index 0000000..f214380
+--- /dev/null
++++ b/src/controllers/_index.js
+@@ -0,0 +1,3 @@
++module.exports.authController = require('./auth.controller');
++module.exports.userController = require('./user.controller');
++module.exports.awsFileController = require('./awsFile.controller');
+diff --git a/src/controllers/awsFile.controller.js b/src/controllers/awsFile.controller.js
+new file mode 100644
+index 0000000..e083439
+--- /dev/null
++++ b/src/controllers/awsFile.controller.js
+@@ -0,0 +1,25 @@
++const catchAsync = require('../utils/catchAsync');
++const { awsFileService } = require('../services');
++const pick = require('../utils/pick');
++
++const createFileUrl = catchAsync(async (req, res) => {
++  const result = await awsFileService.createFileUrl(req.body);
++  res.send(result);
++});
++
++const checkFile = catchAsync(async (req, res) => {
++  const result = await awsFileService.checkFile(req.params.name);
++  res.send(result);
++});
++
++const deleteFile = catchAsync(async (req, res) => {
++  const filter = pick(req.query, ['name']);
++  const result = await awsFileService.deleteFile(filter.name);
++  res.send(result);
++});
++
++module.exports = {
++  createFileUrl,
++  checkFile,
++  deleteFile,
++};
+diff --git a/src/routes/v1/_index.js b/src/routes/v1/_index.js
+new file mode 100644
+index 0000000..5ecbb31
+--- /dev/null
++++ b/src/routes/v1/_index.js
+@@ -0,0 +1,44 @@
++const express = require('express');
++const authRoute = require('./auth.route');
++const userRoute = require('./user.route');
++const awsFileRoute = require('./awsFile.route');
++const docsRoute = require('./docs.route');
++const config = require('../../config/config');
++
++const router = express.Router();
++
++const defaultRoutes = [
++  {
++    path: '/auth',
++    route: authRoute,
++  },
++  {
++    path: '/users',
++    route: userRoute,
++  },
++  {
++    path: '/aws-files',
++    route: awsFileRoute,
++  },
++];
++
++const devRoutes = [
++  // routes available only in development mode
++  {
++    path: '/docs',
++    route: docsRoute,
++  },
++];
++
++defaultRoutes.forEach((route) => {
++  router.use(route.path, route.route);
++});
++
++/* istanbul ignore next */
++if (config.env === 'development') {
++  devRoutes.forEach((route) => {
++    router.use(route.path, route.route);
++  });
++}
++
++module.exports = router;
+diff --git a/src/routes/v1/awsFile.route.js b/src/routes/v1/awsFile.route.js
+new file mode 100644
+index 0000000..a552d4e
+--- /dev/null
++++ b/src/routes/v1/awsFile.route.js
+@@ -0,0 +1,133 @@
++const express = require('express');
++const auth = require('../../middlewares/auth');
++const validate = require('../../middlewares/validate');
++const awsFileValidation = require('../../validations/awsFile.validation');
++const awsFileController = require('../../controllers/awsFile.controller');
++
++const router = express.Router();
++
++router.route('/').post(auth('manageFiles'), validate(awsFileValidation.createFileUrl), awsFileController.createFileUrl);
++router
++  .route('/:name')
++  .get(validate(awsFileValidation.checkFile), awsFileController.checkFile)
++  .delete(auth('manageFiles'), validate(awsFileValidation.deleteFile), awsFileController.deleteFile);
++
++module.exports = router;
++
++/**
++ * @swagger
++ * tags:
++ *   name: AWS Files
++ *   description: File management and retrieval
++ */
++
++/**
++ * @swagger
++ * /aws-files:
++ *   post:
++ *     summary: Get signed url
++ *     description:
++ *     tags: [AWS Files]
++ *     security:
++ *       - bearerAuth: []
++ *     requestBody:
++ *       required: true
++ *       content:
++ *         application/json:
++ *           schema:
++ *             type: object
++ *             required:
++ *               - name
++ *               - type
++ *             properties:
++ *               name:
++ *                 type: string
++ *               type:
++ *                 type: string
++ *             example:
++ *              name: test.jpg
++ *              type: image/jpg
++ *     responses:
++ *       "200":
++ *         description: OK
++ *         content:
++ *           application/json:
++ *             schema:
++ *               type: object
++ *               properties:
++ *                 url:
++ *                   type: string
++ *                   example: https://al77ex1-test.s3-eu-north-1.amazonaws.com/test.jpg?Content-Type=image%2F%2A&X-Amz-Algorithm=AWS4-HMAC-SHA256&X-Amz-Credential=AKIAINZPLSTHG2ROKVPQ%2F20220214%2Feu-north-1%2Fs3%2Faws4_request&X-Amz-Date=20220214T181432Z&X-Amz-Expires=300&X-Amz-Signature=dd74a5439e7137806b1ab63ab92766f2cff58d7ab3ea51f8b3d1e67886ad3c30&X-Amz-SignedHeaders=host
++ *       "401":
++ *         $ref: '#/components/responses/Unauthorized'
++ *       "403":
++ *         $ref: '#/components/responses/Forbidden'
++ */
++
++/**
++ * @swagger
++ * /aws-files/{name}:
++ *   get:
++ *     summary: Get info about a file
++ *     description:
++ *     tags: [AWS Files]
++ *     parameters:
++ *       - in: path
++ *         name: name
++ *         required: true
++ *         schema:
++ *           type: string
++ *     responses:
++ *       "200":
++ *         description: OK
++ *         content:
++ *           application/json:
++ *             schema:
++ *               type: object
++ *               properties:
++ *                 AcceptRanges:
++ *                   type: string
++ *                   example: bytes
++ *                 LastModified:
++ *                   type: string
++ *                   example: 2022-02-14T18:14:52.000Z
++ *                 ContentLength:
++ *                   type: string
++ *                   example: 362878
++ *                 ETag:
++ *                   type: string
++ *                   example: 1e22b3f45bde027588f9772a1eade451
++ *                 ContentType:
++ *                   type: string
++ *                   example: image/jpeg
++ *                 Metadata:
++ *                   type: object
++ *                   example: {}
++ *       "401":
++ *         $ref: '#/components/responses/Unauthorized'
++ *       "403":
++ *         $ref: '#/components/responses/Forbidden'
++ *
++ *   delete:
++ *     summary: Delete a file
++ *     description: Only authorized user can delete other file.
++ *     tags: [AWS Files]
++ *     security:
++ *       - bearerAuth: []
++ *     parameters:
++ *       - in: query
++ *         name: name
++ *         required: true
++ *         schema:
++ *           type: string
++ *         description: S3 file name
++ *     responses:
++ *       "200":
++ *         description: No content
++ *       "401":
++ *         $ref: '#/components/responses/Unauthorized'
++ *       "403":
++ *         $ref: '#/components/responses/Forbidden'
++ *       "404":
++ *         $ref: '#/components/responses/NotFound'
++ */
+diff --git a/src/services/_index.js b/src/services/_index.js
+new file mode 100644
+index 0000000..5787991
+--- /dev/null
++++ b/src/services/_index.js
+@@ -0,0 +1,5 @@
++module.exports.authService = require('./auth.service');
++module.exports.emailService = require('./email.service');
++module.exports.tokenService = require('./token.service');
++module.exports.userService = require('./user.service');
++module.exports.awsFileService = require('./awsFile.service');
+diff --git a/src/services/awsFile.service.js b/src/services/awsFile.service.js
+new file mode 100644
+index 0000000..c60eac7
+--- /dev/null
++++ b/src/services/awsFile.service.js
+@@ -0,0 +1,91 @@
++const AWS = require('aws-sdk');
++const httpStatus = require('http-status');
++const { v4: uuidv4 } = require('uuid');
++const envVars = require('../config/config');
++const ApiError = require('../utils/ApiError');
++
++const s3InitHelper = (params = {}) => {
++  return new AWS.S3({
++    accessKeyId: envVars[process.env.NODE_ENV].awsAccessKeyId,
++    secretAccessKey: envVars[process.env.NODE_ENV].awsSecretAccessKey,
++    signatureVersion: 'v4',
++    ...params,
++  });
++};
++
++/**
++ * Get signed url
++ * @param {string} fileBody - Query options
++ * @returns {QueryResult:object}
++ */
++const createFileUrl = async (fileBody) => {
++  let s3 = s3InitHelper();
++  let location = false;
++  try {
++    location = await s3.getBucketLocation({ Bucket: envVars[process.env.NODE_ENV].awsBucketName }).promise();
++  } catch (err) {
++    throw new ApiError(httpStatus.FAILED_DEPENDENCY, err);
++  }
++  if (typeof location?.LocationConstraint !== 'undefined') {
++    s3 = s3InitHelper({ endpoint: `s3-${location.LocationConstraint}.amazonaws.com`, region: location.LocationConstraint });
++
++    const uuid = uuidv4();
++    const url = s3.getSignedUrl('putObject', {
++      Bucket: envVars[process.env.NODE_ENV].awsBucketName,
++      Key: `${uuid}.${fileBody.name.split('.').pop()}`,
++      Expires: 60 * 5,
++      ContentType: fileBody.type,
++      ACL: 'public-read',
++    });
++    return { s3name: `${uuid}.${fileBody.name.split('.').pop()}`, filename: fileBody.name, url };
++  }
++  throw new ApiError(httpStatus.NOT_FOUND, 'AWS: Location not found.');
++};
++
++/**
++ * Check file
++ * @param {string} name - params option
++ * @returns {QueryResult:object}
++ */
++const checkFile = async (name) => {
++  const s3 = s3InitHelper();
++
++  const params = {
++    Bucket: envVars[process.env.NODE_ENV].awsBucketName,
++    Key: name,
++  };
++
++  try {
++    const info = await s3.headObject(params).promise();
++    return info;
++  } catch (err) {
++    throw new ApiError(httpStatus.NOT_FOUND, err);
++  }
++};
++
++/**
++ * Delete file
++ * @param {string} name - params option
++ * @returns {QueryResult:object}
++ */
++const deleteFile = async (name) => {
++  const s3 = s3InitHelper();
++
++  const params = {
++    Bucket: envVars[process.env.NODE_ENV].awsBucketName,
++    Key: name,
++  };
++
++  try {
++    const info = await s3.deleteObject(params).promise();
++    return info;
++  } catch (err) {
++    throw new ApiError(httpStatus.NOT_FOUND, err);
++  }
++};
++
++module.exports = {
++  createFileUrl,
++  checkFile,
++  deleteFile,
++};
+diff --git a/src/validations/_index.js b/src/validations/_index.js
+new file mode 100644
+index 0000000..c290672
+--- /dev/null
++++ b/src/validations/_index.js
+@@ -0,0 +1,3 @@
++module.exports.authValidation = require('./auth.validation');
++module.exports.userValidation = require('./user.validation');
++module.exports.awsFileValidation = require('./awsFile.validation');
+diff --git a/src/validations/awsFile.validation.js b/src/validations/awsFile.validation.js
+new file mode 100644
+index 0000000..d8de0c1
+--- /dev/null
++++ b/src/validations/awsFile.validation.js
+@@ -0,0 +1,26 @@
++const Joi = require('joi');
++
++const createFileUrl = {
++  body: Joi.object().keys({
++    name: Joi.string().required(),
++    type: Joi.string().required(),
++  }),
++};
++
++const checkFile = {
++  params: Joi.object().keys({
++    name: Joi.string().required(),
++  }),
++};
++
++const deleteFile = {
++  query: Joi.object().keys({
++    name: Joi.string().required(),
++  }),
++};
++
++module.exports = {
++  createFileUrl,
++  checkFile,
++  deleteFile,
++};
+-- 
+2.30.2
+

@@ -1,0 +1,1284 @@
+From 712ae2b9f51cdbc56f09dbe060a1e945de77b70d Mon Sep 17 00:00:00 2001
+From: Alex Shatunov <al77ex1@gmail.com>
+Date: Wed, 23 Mar 2022 10:33:40 +0300
+Subject: [PATCH] taxonomy tree
+
+---
+ src/config/_roles.js                      |  12 +
+ src/controllers/_index.js                 |   3 +
+ src/controllers/taxonomy.controller.js    |  43 +++
+ src/docs/_components.yml                  | 159 +++++++++++
+ src/models/_index.js                      |  72 +++++
+ src/models/taxonomyIndex.model.js         |  33 +++
+ src/models/taxonomyTermData.model.js      |  41 +++
+ src/models/taxonomyTermHierarchy.model.js |  29 ++
+ src/models/taxonomyVocabulary.model.js    |  36 +++
+ src/routes/v1/_index.js                   |  44 +++
+ src/routes/v1/taxonomy.route.js           | 312 ++++++++++++++++++++++
+ src/services/_index.js                    |   5 +
+ src/services/taxonomy.service.js          | 277 +++++++++++++++++++
+ src/validations/_index.js                 |   3 +
+ src/validations/taxonomy.validation.js    |  84 ++++++
+ 15 files changed, 1153 insertions(+)
+ create mode 100644 src/config/_roles.js
+ create mode 100644 src/controllers/_index.js
+ create mode 100644 src/controllers/taxonomy.controller.js
+ create mode 100644 src/docs/_components.yml
+ create mode 100644 src/models/_index.js
+ create mode 100644 src/models/taxonomyIndex.model.js
+ create mode 100644 src/models/taxonomyTermData.model.js
+ create mode 100644 src/models/taxonomyTermHierarchy.model.js
+ create mode 100644 src/models/taxonomyVocabulary.model.js
+ create mode 100644 src/routes/v1/_index.js
+ create mode 100644 src/routes/v1/taxonomy.route.js
+ create mode 100644 src/services/_index.js
+ create mode 100644 src/services/taxonomy.service.js
+ create mode 100644 src/validations/_index.js
+ create mode 100644 src/validations/taxonomy.validation.js
+
+diff --git a/src/config/_roles.js b/src/config/_roles.js
+new file mode 100644
+index 0000000..59ed84d
+--- /dev/null
++++ b/src/config/_roles.js
+@@ -0,0 +1,12 @@
++const allRoles = {
++  user: [],
++  admin: ['getUsers', 'manageUsers', 'manageTaxonomy'],
++};
++
++const roles = Object.keys(allRoles);
++const roleRights = new Map(Object.entries(allRoles));
++
++module.exports = {
++  roles,
++  roleRights,
++};
+diff --git a/src/controllers/_index.js b/src/controllers/_index.js
+new file mode 100644
+index 0000000..1e1f6bb
+--- /dev/null
++++ b/src/controllers/_index.js
+@@ -0,0 +1,3 @@
++module.exports.authController = require('./auth.controller');
++module.exports.userController = require('./user.controller');
++module.exports.taxonomyController = require('./taxonomy.controller');
+diff --git a/src/controllers/taxonomy.controller.js b/src/controllers/taxonomy.controller.js
+new file mode 100644
+index 0000000..8741f22
+--- /dev/null
++++ b/src/controllers/taxonomy.controller.js
+@@ -0,0 +1,43 @@
++const httpStatus = require('http-status');
++const pick = require('../utils/pick');
++const ApiError = require('../utils/ApiError');
++const catchAsync = require('../utils/catchAsync');
++const { taxonomyService } = require('../services');
++
++// For Vocabulary
++const createVocabulary = catchAsync(async (req, res) => {
++  const vocabulary = await taxonomyService.createVocabulary(req.body);
++  res.status(httpStatus.CREATED).send(vocabulary);
++});
++
++const getVocabularies = catchAsync(async (req, res) => {
++  const filter = pick(req.query, ['name', 'shopId']);
++  const options = pick(req.query, ['order', 'limit', 'offset']);
++  const result = await taxonomyService.queryVocabularies(filter, options);
++  res.send(result);
++});
++
++const getVocabulary = catchAsync(async (req, res) => {
++  const vocabulary = await taxonomyService.getVocabularyById(req.params.vocabularyId);
++  if (!vocabulary) throw new ApiError(httpStatus.NOT_FOUND, 'Vocabulary not found');
++  const result = await taxonomyService.queryVocabularies({ id: req.params.vocabularyId }, {});
++  res.send(result);
++});
++
++const updateVocabulary = catchAsync(async (req, res) => {
++  const vocabulary = await taxonomyService.updateVocabularyById(req.params.vocabularyId, req.body);
++  res.send(vocabulary);
++});
++
++const deleteVocabulary = catchAsync(async (req, res) => {
++  await taxonomyService.deleteVocabularyById(req.params.vocabularyId);
++  res.status(httpStatus.NO_CONTENT).send();
++});
++
++module.exports = {
++  createVocabulary,
++  getVocabularies,
++  getVocabulary,
++  updateVocabulary,
++  deleteVocabulary,
++};
+diff --git a/src/docs/_components.yml b/src/docs/_components.yml
+new file mode 100644
+index 0000000..052de33
+--- /dev/null
++++ b/src/docs/_components.yml
+@@ -0,0 +1,159 @@
++components:
++  schemas:
++    User:
++      type: object
++      properties:
++        id:
++          type: string
++        email:
++          type: string
++          format: email
++        name:
++          type: string
++        role:
++          type: string
++          enum: [user, admin]
++      example:
++        id: 5ebac534954b54139806c112
++        email: fake@example.com
++        name: fake name
++        role: user
++
++    Vocabulary:
++      type: object
++      properties:
++        id:
++          type: number
++        name:
++          type: string
++        description:
++          type: string
++        weight:
++          type: number
++        shopId:
++          type: string
++        terms:
++          type: array
++      example:
++        id: 1
++        name: Categories
++        description: product categories
++        weight: 0
++        shopId: 1
++        terms: [
++          {
++            "id": 193,
++            "name": "shoes",
++            "description": "",
++            "weight": 0,
++            "index": [
++              {
++                "id": 1,
++                "entityId": 1,
++                "type": "product"
++              }
++            ],
++            "parent": null,
++            "children": [
++              {
++                "id": 194,
++                "hid": 63,
++                "name": "shirts",
++                "description": "",
++                "weight": 1,
++                "parent": 193,
++                "children": [ ]
++              }
++            ]
++          },
++          {
++            "id": 195,
++            "name": "cart",
++            "description": "",
++            "weight": 2,
++            "parent": null,
++            "children": [
++              {
++                "id": 194,
++                "hid": 64,
++                "name": "shirts",
++                "description": "",
++                "weight": 1,
++                "parent": 195,
++                "children": [ ]
++              }
++            ]
++          }
++        ]
++
++    Token:
++      type: object
++      properties:
++        token:
++          type: string
++        expires:
++          type: string
++          format: date-time
++      example:
++        token: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiI1ZWJhYzUzNDk1NGI1NDEzOTgwNmMxMTIiLCJpYXQiOjE1ODkyOTg0ODQsImV4cCI6MTU4OTMwMDI4NH0.m1U63blB0MLej_WfB7yC2FTMnCziif9X8yzwDEfJXAg
++        expires: 2020-05-12T16:18:04.793Z
++
++    AuthTokens:
++      type: object
++      properties:
++        access:
++          $ref: '#/components/schemas/Token'
++        refresh:
++          $ref: '#/components/schemas/Token'
++
++    Error:
++      type: object
++      properties:
++        code:
++          type: number
++        message:
++          type: string
++
++  responses:
++    DuplicateEmail:
++      description: Email already taken
++      content:
++        application/json:
++          schema:
++            $ref: '#/components/schemas/Error'
++          example:
++            code: 400
++            message: Email already taken
++    Unauthorized:
++      description: Unauthorized
++      content:
++        application/json:
++          schema:
++            $ref: '#/components/schemas/Error'
++          example:
++            code: 401
++            message: Please authenticate
++    Forbidden:
++      description: Forbidden
++      content:
++        application/json:
++          schema:
++            $ref: '#/components/schemas/Error'
++          example:
++            code: 403
++            message: Forbidden
++    NotFound:
++      description: Not found
++      content:
++        application/json:
++          schema:
++            $ref: '#/components/schemas/Error'
++          example:
++            code: 404
++            message: Not found
++
++  securitySchemes:
++    bearerAuth:
++      type: http
++      scheme: bearer
++      bearerFormat: JWT
+diff --git a/src/models/_index.js b/src/models/_index.js
+new file mode 100644
+index 0000000..18d4c6f
+--- /dev/null
++++ b/src/models/_index.js
+@@ -0,0 +1,72 @@
++const { Sequelize, DataTypes } = require('sequelize');
++const path = require('path');
++const Umzug = require('umzug');
++const envVars = require('../config/config');
++const logger = require('../config/logger');
++
++const config = {
++  host: envVars[process.env.NODE_ENV].host,
++  dialect: envVars[process.env.NODE_ENV].dialect,
++  dialectOptions: {
++    charset: 'utf8',
++  },
++  define: {
++    charset: 'utf8',
++    collate: 'utf8_general_ci',
++    timestamps: false,
++  },
++  logging: false,
++};
++
++const sequelize = new Sequelize(
++  envVars[process.env.NODE_ENV].database,
++  envVars[process.env.NODE_ENV].username,
++  envVars[process.env.NODE_ENV].password,
++  config
++);
++sequelize.authenticate().then(() => logger.info('Connected to DB'));
++
++const User = require('./user.model')(sequelize, DataTypes);
++const Token = require('./token.model')(sequelize, DataTypes);
++const TaxonomyVocabulary = require('./taxonomyVocabulary.model')(sequelize, DataTypes);
++const TaxonomyTermData = require('./taxonomyTermData.model')(sequelize, DataTypes);
++const TaxonomyTermHierarchy = require('./taxonomyTermHierarchy.model')(sequelize, DataTypes);
++const TaxonomyIndex = require('./taxonomyIndex.model')(sequelize, DataTypes);
++
++const models = {
++  User,
++  Token,
++  TaxonomyVocabulary,
++  TaxonomyTermData,
++  TaxonomyTermHierarchy,
++  TaxonomyIndex,
++};
++
++Object.values(models)
++  .filter((model) => typeof model.associate === 'function')
++  .forEach((model) => model.associate(models));
++
++const db = { ...models, sequelize };
++
++db.sequelize = sequelize;
++db.Sequelize = Sequelize;
++
++const umzug = new Umzug({
++  migrations: {
++    path: path.join(__dirname, '../migrations'),
++    params: [sequelize.getQueryInterface()],
++  },
++  storage: 'sequelize',
++  storageOptions: {
++    sequelize,
++  },
++});
++
++(async () => {
++  if (envVars.umzug !== 'false') {
++    await umzug.up();
++    logger.info('All migrations performed successfully');
++  }
++})();
++
++module.exports = db;
+diff --git a/src/models/taxonomyIndex.model.js b/src/models/taxonomyIndex.model.js
+new file mode 100644
+index 0000000..520c635
+--- /dev/null
++++ b/src/models/taxonomyIndex.model.js
+@@ -0,0 +1,33 @@
++const { Model } = require('sequelize');
++
++module.exports = (sequelize, DataTypes) => {
++  class TaxonomyIndex extends Model {
++    static associate(models) {
++      this.belongsTo(models.TaxonomyTermData, {
++        onDelete: 'cascade',
++        foreignKey: { name: 'taxonomyTermDataId', allowNull: false },
++      });
++    }
++  }
++
++  TaxonomyIndex.init(
++    {
++      entityId: {
++        type: DataTypes.INTEGER,
++        allowNull: false,
++      },
++      type: {
++        type: DataTypes.STRING,
++        allowNull: false,
++      },
++    },
++    {
++      sequelize,
++      modelName: 'TaxonomyIndex',
++      tableName: 'taxonomy_index',
++      underscored: true,
++    }
++  );
++
++  return TaxonomyIndex;
++};
+diff --git a/src/models/taxonomyTermData.model.js b/src/models/taxonomyTermData.model.js
+new file mode 100644
+index 0000000..259d24d
+--- /dev/null
++++ b/src/models/taxonomyTermData.model.js
+@@ -0,0 +1,41 @@
++const { Model } = require('sequelize');
++
++module.exports = (sequelize, DataTypes) => {
++  class TaxonomyTermData extends Model {
++    static associate(models) {
++      this.hasMany(models.TaxonomyTermHierarchy, { onDelete: 'cascade', foreignKey: { name: 'taxonomyTermDataId' } });
++      this.hasMany(models.TaxonomyIndex, { onDelete: 'cascade', foreignKey: { name: 'taxonomyTermDataId' } });
++      this.belongsTo(models.TaxonomyVocabulary, {
++        onDelete: 'cascade',
++        foreignKey: { name: 'taxonomyVocabularyId', allowNull: false },
++      });
++    }
++  }
++
++  TaxonomyTermData.init(
++    {
++      name: {
++        type: DataTypes.STRING,
++        allowNull: false,
++        validate: { len: [1, 50] },
++      },
++      description: {
++        type: DataTypes.TEXT,
++        allowNull: false,
++        defaultValue: '',
++      },
++      weight: {
++        type: DataTypes.TINYINT,
++        defaultValue: 0,
++      },
++    },
++    {
++      sequelize,
++      modelName: 'TaxonomyTermData',
++      tableName: 'taxonomy_term_data',
++      underscored: true,
++    }
++  );
++
++  return TaxonomyTermData;
++};
+diff --git a/src/models/taxonomyTermHierarchy.model.js b/src/models/taxonomyTermHierarchy.model.js
+new file mode 100644
+index 0000000..e16eb72
+--- /dev/null
++++ b/src/models/taxonomyTermHierarchy.model.js
+@@ -0,0 +1,29 @@
++const { Model } = require('sequelize');
++
++module.exports = (sequelize, DataTypes) => {
++  class TaxonomyTermHierarchy extends Model {
++    static associate(models) {
++      this.belongsTo(models.TaxonomyTermData, {
++        onDelete: 'cascade',
++        foreignKey: { name: 'taxonomyTermDataId', allowNull: false },
++      });
++    }
++  }
++
++  TaxonomyTermHierarchy.init(
++    {
++      parent: {
++        type: DataTypes.INTEGER,
++        allowNull: false,
++      },
++    },
++    {
++      sequelize,
++      modelName: 'TaxonomyTermHierarchy',
++      tableName: 'taxonomy_term_hierarchy',
++      underscored: true,
++    }
++  );
++
++  return TaxonomyTermHierarchy;
++};
+diff --git a/src/models/taxonomyVocabulary.model.js b/src/models/taxonomyVocabulary.model.js
+new file mode 100644
+index 0000000..6f1fdf9
+--- /dev/null
++++ b/src/models/taxonomyVocabulary.model.js
+@@ -0,0 +1,36 @@
++const { Model } = require('sequelize');
++
++module.exports = (sequelize, DataTypes) => {
++  class TaxonomyVocabulary extends Model {
++    static associate(models) {
++      this.hasMany(models.TaxonomyTermData, { onDelete: 'cascade', foreignKey: { name: 'taxonomyVocabularyId' } });
++    }
++  }
++
++  TaxonomyVocabulary.init(
++    {
++      name: {
++        type: DataTypes.STRING,
++        allowNull: false,
++        validate: { len: [1, 50] },
++      },
++      description: {
++        type: DataTypes.TEXT,
++        allowNull: false,
++        defaultValue: '',
++      },
++      weight: {
++        type: DataTypes.TINYINT,
++        defaultValue: 0,
++      },
++    },
++    {
++      sequelize,
++      modelName: 'TaxonomyVocabulary',
++      tableName: 'taxonomy_vocabulary',
++      underscored: true,
++    }
++  );
++
++  return TaxonomyVocabulary;
++};
+diff --git a/src/routes/v1/_index.js b/src/routes/v1/_index.js
+new file mode 100644
+index 0000000..9346b31
+--- /dev/null
++++ b/src/routes/v1/_index.js
+@@ -0,0 +1,44 @@
++const express = require('express');
++const authRoute = require('./auth.route');
++const userRoute = require('./user.route');
++const taxonomyRoute = require('./taxonomy.route');
++const docsRoute = require('./docs.route');
++const config = require('../../config/config');
++
++const router = express.Router();
++
++const defaultRoutes = [
++  {
++    path: '/auth',
++    route: authRoute,
++  },
++  {
++    path: '/taxonomy-tree',
++    route: taxonomyRoute,
++  },
++  {
++    path: '/users',
++    route: userRoute,
++  },
++];
++
++const devRoutes = [
++  // routes available only in development mode
++  {
++    path: '/docs',
++    route: docsRoute,
++  },
++];
++
++defaultRoutes.forEach((route) => {
++  router.use(route.path, route.route);
++});
++
++/* istanbul ignore next */
++if (config.env === 'development') {
++  devRoutes.forEach((route) => {
++    router.use(route.path, route.route);
++  });
++}
++
++module.exports = router;
+diff --git a/src/routes/v1/taxonomy.route.js b/src/routes/v1/taxonomy.route.js
+new file mode 100644
+index 0000000..c28e4ab
+--- /dev/null
++++ b/src/routes/v1/taxonomy.route.js
+@@ -0,0 +1,312 @@
++const express = require('express');
++const auth = require('../../middlewares/auth');
++const validate = require('../../middlewares/validate');
++const taxonomyValidation = require('../../validations/taxonomy.validation');
++const taxonomyController = require('../../controllers/taxonomy.controller');
++
++const router = express.Router();
++
++router
++  .route('/vocabularies')
++  .post(auth('manageTaxonomy'), validate(taxonomyValidation.createVocabulary), taxonomyController.createVocabulary)
++  .get(validate(taxonomyValidation.getVocabularies), taxonomyController.getVocabularies);
++
++router
++  .route('/vocabularies/:vocabularyId')
++  .get(validate(taxonomyValidation.getVocabulary), taxonomyController.getVocabulary)
++  .patch(auth('manageTaxonomy'), validate(taxonomyValidation.updateVocabulary), taxonomyController.updateVocabulary)
++  .delete(auth('manageTaxonomy'), validate(taxonomyValidation.deleteVocabulary), taxonomyController.deleteVocabulary);
++
++module.exports = router;
++
++/**
++ * @swagger
++ * tags:
++ *   name: Taxonomy Tree
++ *   description: Taxonomy management and retrieval
++ */
++
++/**
++ * @swagger
++ * /taxonomy-tree/vocabularies:
++ *   post:
++ *     summary: Create a vocabulary
++ *     description: Only admins can create other vocabularies.
++ *     tags: [Taxonomy Tree]
++ *     security:
++ *       - bearerAuth: []
++ *     requestBody:
++ *       required: true
++ *       content:
++ *         application/json:
++ *           schema:
++ *             type: object
++ *             required:
++ *               - name
++ *               - taxonomyVocabularyId
++ *             properties:
++ *               name:
++ *                 type: string
++ *               description:
++ *                 type: string
++ *               weight:
++ *                 type: number
++ *               terms:
++ *                 type: array
++ *             example:
++ *               name: Categories
++ *               description: product categories
++ *               weight: 0
++ *               terms: [
++ *                 {
++ *                   "name": "shoes",
++ *                   "description": "",
++ *                   "weight": 0,
++ *                   "index": [
++ *                      {
++ *                        "entityId": 1,
++ *                        "type": "product"
++ *                      }
++ *                   ],
++ *                   "children": [
++ *                       {
++ *                        "name": "shirts",
++ *                        "description": "",
++ *                        "weight": 1,
++ *                        "children": []
++ *                       }
++ *                    ]
++ *                 },
++ *                 {
++ *                   "name": "cart",
++ *                   "description": "",
++ *                   "weight": 2,
++ *                   "children": [
++ *                     {
++ *                       "name": "shirts",
++ *                       "description": "",
++ *                       "weight": 1,
++ *                       "children": []
++ *                     }
++ *                   ]
++ *                 }
++ *               ]
++ *     responses:
++ *       "201":
++ *         description: Created
++ *         content:
++ *           application/json:
++ *             schema:
++ *                $ref: '#/components/schemas/Vocabulary'
++ *       "400":
++ *         $ref: '#/components/responses/DuplicateEmail'
++ *       "401":
++ *         $ref: '#/components/responses/Unauthorized'
++ *       "403":
++ *         $ref: '#/components/responses/Forbidden'
++ *
++ *   get:
++ *     summary: Get all vocabularies
++ *     description: Only admins can retrieve all vocabularies.
++ *     tags: [Taxonomy Tree]
++ *     security:
++ *     parameters:
++ *       - in: query
++ *         name: name
++ *         schema:
++ *           type: string
++ *         description: Vocabulary name
++ *       - in: query
++ *         name: order
++ *         schema:
++ *           type: string
++ *         description: sort by query in the form of field:desc/asc (ex. name:asc)
++ *       - in: query
++ *         name: limit
++ *         schema:
++ *           type: integer
++ *           minimum: 1
++ *         default: 10
++ *         description: Maximum number of vocabularies
++ *       - in: query
++ *         name: offset
++ *         schema:
++ *           type: integer
++ *           minimum: 0
++ *           default: 0
++ *         description: Offset
++ *     responses:
++ *       "200":
++ *         description: OK
++ *         content:
++ *           application/json:
++ *             schema:
++ *               type: object
++ *               properties:
++ *                 results:
++ *                   type: array
++ *                   items:
++ *                     $ref: '#/components/schemas/Vocabulary'
++ *                 offset:
++ *                   type: integer
++ *                   example: 1
++ *                 limit:
++ *                   type: integer
++ *                   example: 10
++ *                 totalPages:
++ *                   type: integer
++ *                   example: 1
++ *                 totalResults:
++ *                   type: integer
++ *                   example: 1
++ *       "401":
++ *         $ref: '#/components/responses/Unauthorized'
++ *       "403":
++ *         $ref: '#/components/responses/Forbidden'
++ */
++
++/**
++ * @swagger
++ * /taxonomy-tree/vocabularies/{id}:
++ *   get:
++ *     summary: Get a vocabulary
++ *     description: Logged in vocabularies can fetch only their own vocabulary information. Only admins can fetch other vocabularies.
++ *     tags: [Taxonomy Tree]
++ *     security:
++ *     parameters:
++ *       - in: path
++ *         name: id
++ *         required: true
++ *         schema:
++ *           type: string
++ *         description: Vocabulary id
++ *     responses:
++ *       "200":
++ *         description: OK
++ *         content:
++ *           application/json:
++ *             schema:
++ *                $ref: '#/components/schemas/Vocabulary'
++ *       "401":
++ *         $ref: '#/components/responses/Unauthorized'
++ *       "403":
++ *         $ref: '#/components/responses/Forbidden'
++ *       "404":
++ *         $ref: '#/components/responses/NotFound'
++ *
++ *   patch:
++ *     summary: Update a vocabulary
++ *     description: Logged in vocabularies can only update their own information. Only admins can update other vocabularies.
++ *     tags: [Taxonomy Tree]
++ *     security:
++ *       - bearerAuth: []
++ *     parameters:
++ *       - in: path
++ *         name: id
++ *         required: true
++ *         schema:
++ *           type: string
++ *         description: Vocabulary id
++ *     requestBody:
++ *       required: true
++ *       content:
++ *         application/json:
++ *           schema:
++ *             type: object
++ *             properties:
++ *               name:
++ *                 type: string
++ *               description:
++ *                 type: string
++ *               weight:
++ *                 type: number
++ *               terms:
++ *                 type: array
++ *             example:
++ *               name: Categories
++ *               description: product categories
++ *               weight: 0
++ *               terms: [
++ *                 {
++ *                   "id": 193,
++ *                   "name": "shoes",
++ *                   "description": "",
++ *                   "weight": 0,
++ *                   "index": [
++ *                      {
++ *                        "id": 1,
++ *                        "entityId": 1,
++ *                        "type": "product"
++ *                      }
++ *                   ],
++ *                   "parent": null,
++ *                   "children": [
++ *                       {
++ *                        "id": 194,
++ *                        "hid": 63,
++ *                        "name": "shirts",
++ *                        "description": "",
++ *                        "weight": 1,
++ *                        "parent": 193,
++ *                        "children": []
++ *                       }
++ *                    ]
++ *                 },
++ *                 {
++ *                   "id": 195,
++ *                   "name": "cart",
++ *                   "description": "",
++ *                   "weight": 2,
++ *                   "parent": null,
++ *                   "children": [
++ *                     {
++ *                       "id": 194,
++ *                       "hid": 64,
++ *                       "name": "shirts",
++ *                       "description": "",
++ *                       "weight": 1,
++ *                       "parent": 193,
++ *                       "children": []
++ *                     }
++ *                   ]
++ *                 }
++ *               ]
++ *     responses:
++ *       "200":
++ *         description: OK
++ *         content:
++ *           application/json:
++ *             schema:
++ *                $ref: '#/components/schemas/Vocabulary'
++ *       "400":
++ *         $ref: '#/components/responses/DuplicateEmail'
++ *       "401":
++ *         $ref: '#/components/responses/Unauthorized'
++ *       "403":
++ *         $ref: '#/components/responses/Forbidden'
++ *       "404":
++ *         $ref: '#/components/responses/NotFound'
++ *
++ *   delete:
++ *     summary: Delete a vocabulary
++ *     description: Logged in vocabularies can delete only themselves. Only admins can delete other vocabularies.
++ *     tags: [Taxonomy Tree]
++ *     security:
++ *       - bearerAuth: []
++ *     parameters:
++ *       - in: path
++ *         name: id
++ *         required: true
++ *         schema:
++ *           type: string
++ *         description: Vocabulary id
++ *     responses:
++ *       "200":
++ *         description: No content
++ *       "401":
++ *         $ref: '#/components/responses/Unauthorized'
++ *       "403":
++ *         $ref: '#/components/responses/Forbidden'
++ *       "404":
++ *         $ref: '#/components/responses/NotFound'
++ */
+diff --git a/src/services/_index.js b/src/services/_index.js
+new file mode 100644
+index 0000000..50bbc1b
+--- /dev/null
++++ b/src/services/_index.js
+@@ -0,0 +1,5 @@
++module.exports.authService = require('./auth.service');
++module.exports.emailService = require('./email.service');
++module.exports.tokenService = require('./token.service');
++module.exports.userService = require('./user.service');
++module.exports.taxonomyService = require('./taxonomy.service');
+diff --git a/src/services/taxonomy.service.js b/src/services/taxonomy.service.js
+new file mode 100644
+index 0000000..c080b55
+--- /dev/null
++++ b/src/services/taxonomy.service.js
+@@ -0,0 +1,277 @@
++const httpStatus = require('http-status');
++const { Sequelize } = require('sequelize');
++const { TaxonomyVocabulary, TaxonomyTermData, TaxonomyTermHierarchy, TaxonomyIndex } = require('../models');
++const ApiError = require('../utils/ApiError');
++const convertOptions = require('../utils/convertOptions');
++
++/**
++ * Create a vocabulary
++ * @param {Array} items
++ * @param {Number} id
++ * @param {String} link
++ * @returns {Object}
++ */
++const arrayTreeHelper = (items, id = null, link = 'parent') =>
++  items.filter((item) => item[link] === id).map((item) => ({ ...item, children: arrayTreeHelper(items, item.id) }));
++
++/**
++ * Create a vocabulary
++ * @param {Array} rows
++ * @returns {Object}
++ */
++const termDataTreeHelper = async (rows) => {
++  return rows.map((row) => {
++    const res = {};
++    const terms = [];
++    row.TaxonomyTermData.forEach((item) => {
++      const term = {
++        id: item.id,
++        name: item.name,
++        description: item.description,
++        weight: item.weight,
++        index: item.TaxonomyIndices,
++      };
++      if (!item.TaxonomyTermHierarchies.length) {
++        term.parent = null;
++        terms.push(term);
++      } else {
++        item.TaxonomyTermHierarchies.forEach((hierarchy) => {
++          term.parent = hierarchy.parent;
++          terms.push(term);
++        });
++      }
++    });
++    res.id = row.id;
++    res.name = row.name;
++    res.description = row.description;
++    res.weight = row.weight;
++    res.terms = arrayTreeHelper(terms);
++    return res;
++  });
++};
++
++/**
++ * Create a vocabulary
++ * @param {Object} terms
++ * @param {Number} parent
++ * @param {Number} taxonomyVocabularyId
++ * @returns {Array}
++ */
++const treeTermDataHelper = async (terms, parent = null, taxonomyVocabularyId) => {
++  const ids = [];
++  // eslint-disable-next-line no-restricted-syntax
++  for (const item of terms) {
++    if (!item.id) {
++      // ~~~ For Creating ~~~
++      // eslint-disable-next-line no-await-in-loop
++      const term = await TaxonomyTermData.create({
++        name: item.name,
++        description: item.description,
++        weight: item.weight,
++        taxonomyVocabularyId,
++      });
++      // ~ Term Index ~
++      if (typeof item.index !== 'undefined') {
++        // eslint-disable-next-line no-restricted-syntax
++        for (const indexItem of item.index) {
++          // eslint-disable-next-line no-await-in-loop
++          await TaxonomyIndex.create({ entityId: indexItem.entityId, type: indexItem.type, taxonomyTermDataId: term.id });
++        }
++      }
++      // ~ Term Hierarchy ~
++      const data = { id: term.id, children: [] };
++      if (parent) {
++        // eslint-disable-next-line no-await-in-loop
++        await TaxonomyTermHierarchy.create({ parent, taxonomyTermDataId: term.id });
++        data.children.push(parent);
++      }
++      if (typeof item.children !== 'undefined') {
++        // eslint-disable-next-line no-await-in-loop
++        const childrenIds = await treeTermDataHelper(item.children, term.id, taxonomyVocabularyId);
++        ids.push(...childrenIds);
++      }
++      ids.push(data);
++    } else {
++      // ~~~ For Updating ~~~
++      // eslint-disable-next-line no-await-in-loop
++      await TaxonomyTermData.update(
++        { name: item.name, description: item.description, weight: item.weight },
++        { where: { id: item.id, taxonomyVocabularyId } }
++      );
++      // ~ Term Index ~
++      if (typeof item.index !== 'undefined') {
++        const indexIds = [];
++        // eslint-disable-next-line no-restricted-syntax
++        for (const indexItem of item.index) {
++          if (indexItem.id) {
++            // eslint-disable-next-line no-await-in-loop
++            await TaxonomyIndex.update(
++              { entityId: indexItem.entityId, type: indexItem.type, taxonomyTermDataId: item.id },
++              { where: { id: indexItem.id } }
++            );
++            indexIds.push(indexItem.id);
++          } else {
++            // eslint-disable-next-line no-await-in-loop
++            const newIndex = await TaxonomyIndex.create({
++              entityId: indexItem.entityId,
++              type: indexItem.type,
++              taxonomyTermDataId: item.id,
++            });
++            indexIds.push(newIndex.id);
++          }
++        }
++        // eslint-disable-next-line no-await-in-loop
++        const indexes = await TaxonomyIndex.findAll({ where: { taxonomyTermDataId: item.id } });
++        const destroyIds = [];
++        indexes.forEach((index) => {
++          if (!indexIds.find((id) => id === index.id)) destroyIds.push(index.id);
++        });
++        // eslint-disable-next-line no-await-in-loop
++        await TaxonomyIndex.destroy({
++          where: { [Sequelize.Op.and]: [{ taxonomyTermDataId: item.id }, { id: destroyIds }] },
++        });
++      }
++      // ~ Term Hierarchy ~
++      const data = { id: item.id, children: [] };
++      if (item.hid) {
++        // eslint-disable-next-line no-await-in-loop
++        await TaxonomyTermHierarchy.update({ parent: item.parent }, { where: { id: item.hid } });
++        data.children.push(item.parent);
++      }
++      if (typeof item.children !== 'undefined') {
++        // eslint-disable-next-line no-await-in-loop
++        const childrenIds = await treeTermDataHelper(item.children, item.id, taxonomyVocabularyId);
++        ids.push(...childrenIds);
++      }
++      ids.push(data);
++    }
++  }
++  return ids;
++};
++
++/**
++ * Create a vocabulary
++ * @param {Object} vocabularyBody
++ * @returns {Promise<TaxonomyVocabulary>}
++ */
++const createVocabulary = async (vocabularyBody) => {
++  const data = {
++    name: vocabularyBody.name,
++    description: vocabularyBody.description,
++    weight: vocabularyBody.weight,
++  };
++  let vocabulary = await TaxonomyVocabulary.create(data);
++  await treeTermDataHelper(vocabularyBody.terms, null, vocabulary.id);
++  // eslint-disable-next-line no-use-before-define
++  vocabulary = queryVocabularies({ id: vocabulary.id });
++  return vocabulary;
++};
++
++/**
++ * Query for vocabularies
++ * @param {Object} filter
++ * @param {Object} options - Query options
++ * @param {string} [options.order] - Order option in the format: sortField: (desc|asc)
++ * @param {number} [options.limit] - Maximum number of results per page (default = 10)
++ * @param {number} [options.offset] - Current offset (default = 1)
++ * @returns {QueryResult:object}
++ */
++const queryVocabularies = async (filter, options = {}) => {
++  const parameters = convertOptions(options);
++  let vocabularies = await TaxonomyVocabulary.findAndCountAll({
++    distinct: true,
++    include: [
++      {
++        model: TaxonomyTermData,
++        attributes: { exclude: ['taxonomyVocabularyId'] },
++        include: [
++          { model: TaxonomyTermHierarchy, attributes: { exclude: ['taxonomyTermDataId'] } },
++          { model: TaxonomyIndex, attributes: { exclude: ['taxonomyTermDataId'] } },
++        ],
++      },
++    ],
++    where: filter,
++    ...parameters,
++  });
++
++  vocabularies = await termDataTreeHelper(vocabularies.rows);
++  if (filter.id) return vocabularies[0];
++  return vocabularies;
++};
++
++/**
++ * Get vocabulary by id
++ * @param {ObjectId:number} id
++ * @returns {Promise<Vocabulary:object>}
++ */
++const getVocabularyById = async (id) => {
++  return TaxonomyVocabulary.findByPk(id);
++};
++
++/**
++ * Update vocabulary by id
++ * @param {ObjectId:number} vocabularyId
++ * @param {Object} vocabularyBody
++ * @returns {Promise<Vocabulary:object>}
++ */
++const updateVocabularyById = async (vocabularyId, vocabularyBody) => {
++  let vocabulary = await getVocabularyById(vocabularyId);
++  if (!vocabulary) throw new ApiError(httpStatus.NOT_FOUND, 'Vocabulary not found');
++
++  const data = {
++    name: vocabularyBody.name,
++    description: vocabularyBody.description,
++    weight: vocabularyBody.weight,
++  };
++  await TaxonomyVocabulary.update(data, { where: { id: vocabularyId } });
++  // Create and update terms  and hierarhies
++  const ids = await treeTermDataHelper(vocabularyBody.terms, null, vocabulary.id);
++  // Delete terms and hierarhies
++  const terms = await TaxonomyTermData.findAll({
++    include: [{ model: TaxonomyTermHierarchy }],
++    where: { taxonomyVocabularyId: vocabularyId },
++  });
++  const hierarchyId = [];
++  const termsId = [];
++  terms.forEach((item) => {
++    const term = ids.find((treeItem) => treeItem.id === item.id);
++    if (!term) {
++      termsId.push(item.id);
++    } else {
++      item.TaxonomyTermHierarchies.forEach((hierarchy) => {
++        const curHierarchyIds = [];
++        ids.forEach((curItem) => {
++          if (item.id === curItem.id) curHierarchyIds.push(...curItem.children);
++        });
++        if (!curHierarchyIds.find((child) => child === hierarchy.parent)) hierarchyId.push(hierarchy.id);
++      });
++    }
++  });
++  await TaxonomyTermData.destroy({ where: { id: termsId } });
++  await TaxonomyTermHierarchy.destroy({ where: { id: hierarchyId } });
++
++  vocabulary = queryVocabularies({ id: vocabularyId }, {});
++  return vocabulary;
++};
++
++/**
++ * Delete vocabulary by id
++ * @param {ObjectId:number} vocabularyId
++ * @returns {Promise<Vocabulary:object>}
++ */
++const deleteVocabularyById = async (vocabularyId) => {
++  const vocabulary = await getVocabularyById(vocabularyId);
++  if (!vocabulary) throw new ApiError(httpStatus.NOT_FOUND, 'Vocabulary not found');
++
++  await TaxonomyVocabulary.destroy({ where: { id: vocabularyId } });
++  return vocabulary;
++};
++module.exports = {
++  termDataTreeHelper,
++  treeTermDataHelper,
++  createVocabulary,
++  queryVocabularies,
++  getVocabularyById,
++  updateVocabularyById,
++  deleteVocabularyById,
++};
+diff --git a/src/validations/_index.js b/src/validations/_index.js
+new file mode 100644
+index 0000000..886be0b
+--- /dev/null
++++ b/src/validations/_index.js
+@@ -0,0 +1,3 @@
++module.exports.authValidation = require('./auth.validation');
++module.exports.userValidation = require('./user.validation');
++module.exports.taxonomyValidation = require('./taxonomy.validation');
+diff --git a/src/validations/taxonomy.validation.js b/src/validations/taxonomy.validation.js
+new file mode 100644
+index 0000000..0fe6abb
+--- /dev/null
++++ b/src/validations/taxonomy.validation.js
+@@ -0,0 +1,84 @@
++const Joi = require('joi');
++
++// For Vocabulary
++const createVocabulary = {
++  body: Joi.object().keys({
++    name: Joi.string().required(),
++    description: Joi.string().allow(''),
++    weight: Joi.number().integer(),
++    terms: Joi.array().items(
++      Joi.object().keys({
++        name: Joi.string().required(),
++        description: Joi.string().allow(''),
++        weight: Joi.number().integer(),
++        index: Joi.array().items(
++          Joi.object().keys({
++            entityId: Joi.number().integer().positive(),
++            type: Joi.string(),
++          })
++        ),
++        children: Joi.array(),
++      })
++    ),
++  }),
++};
++
++const getVocabularies = {
++  query: Joi.object().keys({
++    name: Joi.string(),
++    order: Joi.string(),
++    limit: Joi.number().integer().positive().allow(0),
++    offset: Joi.number().integer().positive().allow(0),
++  }),
++};
++
++const getVocabulary = {
++  params: Joi.object().keys({
++    vocabularyId: Joi.number().integer().positive().required(),
++  }),
++};
++
++const updateVocabulary = {
++  params: Joi.object().keys({
++    vocabularyId: Joi.number().integer().positive().required(),
++  }),
++  body: Joi.object()
++    .keys({
++      id: Joi.number().integer().positive(),
++      name: Joi.string(),
++      description: Joi.string().allow(''),
++      weight: Joi.number().integer(),
++      terms: Joi.array().items(
++        Joi.object().keys({
++          id: Joi.number().integer().positive(),
++          name: Joi.string(),
++          description: Joi.string().allow(''),
++          weight: Joi.number().integer(),
++          parent: Joi.number().integer().positive().allow(null),
++          index: Joi.array().items(
++            Joi.object().keys({
++              id: Joi.number().integer().positive(),
++              entityId: Joi.number().integer().positive(),
++              type: Joi.string(),
++            })
++          ),
++          children: Joi.array(),
++        })
++      ),
++    })
++    .min(1),
++};
++
++const deleteVocabulary = {
++  params: Joi.object().keys({
++    vocabularyId: Joi.number().integer().positive().required(),
++  }),
++};
++
++module.exports = {
++  createVocabulary,
++  getVocabularies,
++  getVocabulary,
++  updateVocabulary,
++  deleteVocabulary,
++};
+-- 
+2.30.2
+
