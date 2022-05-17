@@ -10,6 +10,7 @@
   },
   "rules": {
     "no-console": "error",
+    "prettier/prettier": 2,
     "func-names": "off",
     "no-underscore-dangle": "off",
     "consistent-return": "off",
