@@ -6,6 +6,7 @@ const logger = require('../config/logger');
 
 const config = {
   host: envVars[process.env.NODE_ENV].host,
+  port: envVars[process.env.NODE_ENV].port || 5432,
   dialect: envVars[process.env.NODE_ENV].dialect,
   dialectOptions: {
     charset: 'utf8',
